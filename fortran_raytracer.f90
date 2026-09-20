@@ -1,27 +1,29 @@
 module raytrace_params
-  use , intrinsic :: iso_c_binding, only:c_int, c_char
+  use , intrinsic :: iso_c_binding, only:c_int
+  use, intrinsic :: iso_fortran_env, only:uint8
+
   implicit none(type, external)
   integer(c_int), parameter :: width = 1024, height = 1024
 
-  real, parameter :: camera_pos(3) = [0.0,0.0,0.0]
-  real, parameter :: camera_vec(3) = [1.0,0.0,0.0]
+  real, parameter :: camera_pos(3) = [50.0,200.0, 150.0]
+  real, parameter :: camera_vec(3) = [0.0,-1.0,-1.0] *2
 
   real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
 
   type :: sphere
     real :: radius, point(3)
-    character(c_char) :: color(3)
+    integer(uint8) :: color(3)
   end type sphere
 
   type :: plane
     real:: point(3), normal(3)
-    character(c_char) :: color(3)
+    integer(uint8) :: color(3)
   end type plane
 
   type :: scene
     type(plane) , allocatable :: planes(:)
     type(sphere) , allocatable :: spheres(:)
-    character(c_char) :: sky_color(3)
+    integer(uint8) :: sky_color(3)
   end type scene
 
   real :: h_vec(3), v_vec(3)
@@ -29,11 +31,11 @@ module raytrace_params
 end module raytrace_params
 
 program fortran_raytracer
-  use , intrinsic :: iso_c_binding, only:c_char, c_int
+  use , intrinsic :: iso_c_binding, only:c_char
   use raytrace_params
 
   implicit none(type, external)
-  character(kind=c_char), allocatable, target ::  canvas(:,:,:)
+  integer(uint8), allocatable, target ::  canvas(:,:,:)
 
 
   allocate(canvas(3,width,height))
@@ -45,11 +47,10 @@ program fortran_raytracer
 
     !generates each pixel
     pure function get_raytraced_pixel(i, j) result(color)
-      use, intrinsic :: iso_c_binding, only: c_char
       use raytrace_params
       integer, intent(in) :: i, j
       real :: i_com, j_com, ray(3)
-      character(c_char) :: color(3)
+      integer(uint8) :: color(3)
 
       i_com = (real(2*i) / real(width)) - 1.0
       j_com = (real(2*j) / real(height)) - 1.0
@@ -61,24 +62,24 @@ program fortran_raytracer
 
     pure function get_ray_color(r) result(color)
       use raytrace_params
-      character(c_char) :: color(3)
+      integer(uint8) :: color(3)
       real, intent(in) :: r(3)
       real, parameter :: largest = huge(1.0)
-      real :: smallest, curr
+      real :: smallest, curr, scratch
       integer :: i
-      type(plane) :: curr_plane
-      type(sphere) :: curr_sphere
-      color = curr_scene%sky_color
 
+      color = curr_scene%sky_color
       smallest = largest
 
-      do i=1, sizeof(curr_scene%planes)
-        curr_plane = curr_scene%planes(i)
-        curr = get_plane_intersection(curr_plane, r, camera_pos)
-
+      do i=1, size(curr_scene%planes)
+        curr = get_plane_intersection(curr_scene%planes(i), r, camera_pos)
         if(0.0 < curr .and. curr < smallest) then
           smallest = curr
-          color = curr_plane%color
+          color = curr_scene%planes(i)%color
+          scratch = mod(floor(norm2(curr * r + camera_pos - curr_scene%planes(i)%point)), 25)
+          if (scratch < 12) then
+            color = [0,255,0] * (1/scratch)
+          end if
         end if
       end do
 
@@ -122,14 +123,13 @@ program fortran_raytracer
     pure function normalize(v) result(p)
       real, intent(in) :: v(3)
       real :: p(3)
-      p = (1 / norm2(v)) * v
+      p = v / norm2(v)
     end function normalize
 
     !concurrently draws pixels on the canvas
     subroutine draw_canvas(canvas)
       use raytrace_params
-      character(c_char), allocatable, target ,intent(inout) :: canvas(:,:,:)
-      character(c_char) :: color(3)
+      integer(uint8), allocatable, target ,intent(inout) :: canvas(:,:,:)
       integer :: i, j
 
       h_vec = normalize(compute_cross_product(camera_vec, up_vec))
@@ -140,7 +140,15 @@ program fortran_raytracer
             plane(&
               [0.0,0.0,-20.0],& !point
               [0.2,0.2,1.0],& !normal
-              [achar(92, kind=c_char),achar(172, kind=c_char),achar(45, kind=c_char)]& !color
+
+              [92, 172, 45]& !color
+            ),&
+
+            plane(&
+              [0.0, 200.0,-20.0],& !point
+              [-0.2,-0.2,1.0],& !normal
+
+              [200, 172, 33]& !color
             )&
           ],&
 
@@ -148,19 +156,17 @@ program fortran_raytracer
             sphere(&
               10,& ! radius
               [20.0, 0.0, 0.0],&
-              [achar(255, kind=c_char),achar(0, kind=c_char),achar(0, kind=c_char)]&
+
+              [255,0,0]&
             )&
           ],&
 
           !sky color
-          [achar(107, kind=c_char),achar(221, kind=c_char),achar(229, kind=c_char)]&
+          [107, 221, 229]&
         )
 
       do concurrent(i=1:width, j=1:height)
-        color = get_raytraced_pixel(i,j)
-        canvas(1, i, j) = color(1)
-        canvas(2, i, j) = color(2)
-        canvas(3, i, j) = color(3)
+        canvas(:,i,j) = get_raytraced_pixel(i,j)
       end do
     end subroutine draw_canvas
 
@@ -170,7 +176,7 @@ program fortran_raytracer
       use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_loc, c_null_char
 
       character(len=*), intent(in) :: name
-      character(kind=c_char), allocatable, target, intent(in) ::  canvas(:,:,:)
+      integer(uint8), allocatable, target, intent(in) ::  canvas(:,:,:)
       character(kind=c_char, len=:), allocatable :: c_name
       type(c_ptr) ::  pixels
 
