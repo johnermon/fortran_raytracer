@@ -2,9 +2,14 @@ cmake_minimum_required(VERSION 4.3.0)
 
 project(fortran_raytracer C Fortran)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 add_executable(fortran_raytracer fortran_raytracer.f90 canvas.c)
 
 include(FetchContent)
+
+set(MINIFB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+
 FetchContent_Declare(
     minifb
     GIT_REPOSITORY https://github.com/emoon/minifb.git
@@ -20,23 +25,38 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb_image_write)
 
+add_library(stb_image_write INTERFACE)
+
+target_include_directories(stb_image_write INTERFACE
+    "${stb_image_write_SOURCE_DIR}"
+)
+
+target_sources(stb_image_write INTERFACE
+    "${stb_image_write_SOURCE_DIR}/stb_image_write.h"
+)
+
 target_compile_options(fortran_raytracer PRIVATE
-  -funsigned
-  -fno-range-check
+  $<$<COMPILE_LANGUAGE:Fortran>:-funsigned>
+  $<$<COMPILE_LANGUAGE:Fortran>:-fno-range-check>
   -O3
   -fopenmp
   -march=native
 )
 
-target_include_directories(fortran_raytracer PRIVATE
-    ${stb_image_write_SOURCE_DIR}
-)
-
 target_link_libraries(fortran_raytracer PRIVATE
   minifb
+  stb_image_write
 )
 
 target_link_options(fortran_raytracer PRIVATE
   -fopenmp
 )
+
+if(CMAKE_EXPORT_COMPILE_COMMANDS)
+  file(CREATE_LINK
+        "${CMAKE_BINARY_DIR}/compile_commands.json"
+        "${CMAKE_SOURCE_DIR}/compile_commands.json"
+        SYMBOLIC
+    )
+endif()
 
