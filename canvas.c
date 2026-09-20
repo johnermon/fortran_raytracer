@@ -1,3 +1,4 @@
+#include "MiniFB_enums.h"
 #include "MiniFB_types.h"
 #include <MiniFB.h>
 #include <stdint.h>
@@ -13,8 +14,12 @@ struct mfb_window *open_window(const char *name, int width, int height) {
 
 void close_window(struct mfb_window *window) { mfb_close(window); }
 
+int update_window(struct mfb_window *window, void *buffer) {
+  return mfb_update(window, buffer);
+}
+
 int save_canvas(const char *filename, int width, int height,
                 const unsigned char *pixels) {
 
-  return stbi_write_png(filename, width, height, 3, pixels, 3 * width);
+  return stbi_write_png(filename, width, height, 4, pixels, 4 * width);
 }

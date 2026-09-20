@@ -12,17 +12,17 @@ module raytrace_params
     type(plane) , allocatable :: planes(:)
     type(sphere) , allocatable :: spheres(:)
 
-    integer(uint8) :: sky_color(3)
+    integer(uint8) :: sky_color(4)
   end type scene
 
   type :: sphere
     real :: radius, point(3)
-    integer(uint8) :: color(3)
+    integer(uint8) :: color(4)
   end type sphere
 
   type :: plane
     real:: point(3), normal(3)
-    integer(uint8) :: color(3)
+    integer(uint8) :: color(4)
   end type plane
 
 end module raytrace_params
@@ -30,7 +30,7 @@ end module raytrace_params
 program fortran_raytracer
   use , intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr
   use, intrinsic :: iso_fortran_env, only:uint8
-  use c_bindings, only :close_window, open_window, generate_png
+  use c_bindings, only :close_window, open_window, generate_png, update_window
   use raytrace_params, only:scene
 
   implicit none(type, external)
@@ -41,7 +41,7 @@ program fortran_raytracer
 
   curr_scene = setup_params()
 
-  allocate(canvas(3,curr_scene%width,curr_scene%height))
+  allocate(canvas(4,curr_scene%width,curr_scene%height))
 
   window = open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
 
@@ -49,9 +49,12 @@ program fortran_raytracer
   call trace_rays(curr_scene, canvas)
   !$omp end parallel
 
+  call update_window(window, canvas)
   call generate_png("output.png", curr_scene%width,curr_scene%height, canvas)
+
   deallocate(canvas)
 
+  call sleep(10)
   call close_window(window)
 
   contains
@@ -79,16 +82,15 @@ program fortran_raytracer
               [0.0,0.0,-20.0],& !point
               [0.2,0.2,1.0],& !normal
 
-              [91, 206, 250]& !color
+              [250, 206, 91, 255]& !color
             ),&
 
             plane(&
               [0.0, 200.0,-20.0],& !point
               [-0.2,-0.2,1.0],& !normal
 
-              [249, 169, 184]& !color
+              [184, 169, 249, 255]& !color
             )&
-
           ],&
 
           [& ! spheres
@@ -96,12 +98,12 @@ program fortran_raytracer
               10,& ! radius
               [20.0, 0.0, 0.0],&
 
-              [255,0,0]& !color
+              [0,0,255, 255]& !color
             )&
           ],&
 
           !sky color
-          [107, 221, 229]&
+          [229, 221, 107, 255]&
         )
     end function setup_params
 
@@ -138,7 +140,7 @@ program fortran_raytracer
     pure function get_ray_color(curr_scene,r) result(color)
       use raytrace_params, only:scene, sphere, plane
       use, intrinsic :: iso_fortran_env, only:uint8
-      integer(uint8) :: color(3)
+      integer(uint8) :: color(4)
       type(scene), intent(in) :: curr_scene
       real, intent(in) :: r(3)
       real, parameter :: largest = huge(1.0)
@@ -162,11 +164,11 @@ program fortran_raytracer
           )
 
           if (scratch < 25) then
-              ! color = [255,255,255]
             color = [&
-              int(abs(sin(scratch/2)) * 255.0,uint8),&
+              int(abs(sin(scratch/5)) * 255.0, uint8),&
               int(abs(cos(scratch/3)) * 255.0, uint8),&
-              int(abs(sin(scratch/5)) * 255.0, uint8)&
+              int(abs(sin(scratch/2)) * 255.0,uint8),&
+              int(255, uint8)&
               ]
           end if
         end if
