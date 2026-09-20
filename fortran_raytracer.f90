@@ -62,7 +62,7 @@ program fortran_raytracer
       v_vec = normalize(compute_cross_product(camera_vec, h_vec))
 
       curr_scene = scene(&
-        100000, 10000,& !width, height
+        1024, 1024,& !width, height
         up_vec,&
         camera_pos, camera_vec,&
         h_vec, v_vec,&
