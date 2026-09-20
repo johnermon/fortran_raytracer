@@ -5,8 +5,8 @@ module raytrace_params
   implicit none(type, external)
   integer(c_int), parameter :: width = 1024, height = 1024
 
-  real, parameter :: camera_pos(3) = [50.0,200.0, 150.0]
-  real, parameter :: camera_vec(3) = [0.0,-1.0,-1.0] *2
+  real, parameter :: camera_pos(3) = [500.0,50.0, -50.0]
+  real, parameter :: camera_vec(3) = [-1.0,1.0,0.0]
 
   real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
 
@@ -46,19 +46,16 @@ program fortran_raytracer
   contains
 
     !generates each pixel
-    pure function get_raytraced_pixel(i, j) result(color)
+    pure function get_ray(i, j) result(ray)
       use raytrace_params
       integer, intent(in) :: i, j
       real :: i_com, j_com, ray(3)
-      integer(uint8) :: color(3)
 
       i_com = (real(2*i) / real(width)) - 1.0
       j_com = (real(2*j) / real(height)) - 1.0
 
       ray = normalize(camera_vec + i_com * h_vec + j_com * v_vec)
-
-      color = get_ray_color(ray)
-    end function get_raytraced_pixel
+    end function get_ray
 
     pure function get_ray_color(r) result(color)
       use raytrace_params
@@ -76,9 +73,14 @@ program fortran_raytracer
         if(0.0 < curr .and. curr < smallest) then
           smallest = curr
           color = curr_scene%planes(i)%color
-          scratch = mod(floor(norm2(curr * r + camera_pos - curr_scene%planes(i)%point)), 25)
-          if (scratch < 12) then
-            color = [0,255,0] * (1/scratch)
+          scratch = mod(floor(norm2(curr * r + camera_pos - curr_scene%planes(i)%point)), 50)
+          if (scratch < 40) then
+            color = [&
+              int(abs(sin(scratch/2)) * 255.0,uint8),&
+              int(abs(cos(scratch/3)) * 255.0, uint8),&
+              int(abs(sin(scratch/5)) * 255.0, uint8)&
+              ]
+
           end if
         end if
       end do
@@ -141,14 +143,14 @@ program fortran_raytracer
               [0.0,0.0,-20.0],& !point
               [0.2,0.2,1.0],& !normal
 
-              [92, 172, 45]& !color
+              [91, 206, 250]& !color
             ),&
 
             plane(&
               [0.0, 200.0,-20.0],& !point
               [-0.2,-0.2,1.0],& !normal
 
-              [200, 172, 33]& !color
+              [249, 169, 184]& !color
             )&
           ],&
 
@@ -166,7 +168,7 @@ program fortran_raytracer
         )
 
       do concurrent(i=1:width, j=1:height)
-        canvas(:,i,j) = get_raytraced_pixel(i,j)
+        canvas(:,i,j) = get_ray_color(get_ray(i,j))
       end do
     end subroutine draw_canvas
 
