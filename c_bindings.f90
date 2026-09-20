@@ -1,4 +1,5 @@
 module c_bindings
+  implicit none(type, external)
   contains
     !outputs the canvas to a png file via c ffi
     subroutine generate_png(name, width, height, canvas)
@@ -107,4 +108,17 @@ module c_bindings
 
     end subroutine update_window
 
+    ! subroutine generate_io_callback(window, callback)
+    !   use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_funptr
+    !   type(c_ptr), intent(in) :: window
+    !   type(c_funptr), intent(in) :: callback
+    !   interface
+    !     subroutine c_generate_io_callback(window, callback) bind(C, name="generate_io_callback")
+    !       implicit none(type, external)
+    !       type(c_ptr), intent(in) :: window
+    !       type(c_funptr), intent(in) :: callback
+    !     end subroutine c_generate_io_callback
+    !   end interface
+    !   generate_io_callback(window, callback)
+    ! end subroutine generate_io_callback
 end module c_bindings

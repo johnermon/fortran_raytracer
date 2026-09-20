@@ -1,8 +1,6 @@
-#include "MiniFB_enums.h"
 #include "MiniFB_types.h"
 #include <MiniFB.h>
 #include <stdint.h>
-#include <stdio.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include "stb_image_write.h"
@@ -11,6 +9,11 @@ struct mfb_window *open_window(const char *name, int width, int height) {
   struct mfb_window *window = mfb_open(name, width, height);
   return window;
 }
+//
+// void generate_io_callback(struct mfb_window *window,
+//                           mfb_keyboard_func callback) {
+//   mfb_set_keyboard_callback(window, callback);
+// }
 
 void close_window(struct mfb_window *window) { mfb_close(window); }
 

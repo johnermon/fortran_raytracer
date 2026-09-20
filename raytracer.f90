@@ -1,4 +1,4 @@
-module raytrace_params
+module raytracer
   use , intrinsic :: iso_c_binding, only:c_int
   use, intrinsic :: iso_fortran_env, only:uint8
     implicit none(type, external)
@@ -25,42 +25,8 @@ module raytrace_params
     integer(uint8) :: color(4)
   end type plane
 
-end module raytrace_params
-
-program fortran_raytracer
-  use , intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr
-  use, intrinsic :: iso_fortran_env, only:uint8
-  use c_bindings, only :close_window, open_window, generate_png, update_window
-  use raytrace_params, only:scene
-
-  implicit none(type, external)
-  integer(uint8),allocatable ::  canvas(:,:,:)
-  type(scene) :: curr_scene
-  type(c_ptr) :: window
-  window = c_null_ptr
-
-  curr_scene = setup_params()
-
-  allocate(canvas(4,curr_scene%width,curr_scene%height))
-
-  window = open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
-
-  !$omp parallel
-  call trace_rays(curr_scene, canvas)
-  !$omp end parallel
-
-  call update_window(window, canvas)
-  call generate_png("output.png", curr_scene%width,curr_scene%height, canvas)
-
-  deallocate(canvas)
-
-  call sleep(10)
-  call close_window(window)
-
   contains
-
     function setup_params() result(curr_scene)
-      use raytrace_params, only:scene, sphere, plane
       use, intrinsic :: iso_fortran_env, only:uint8
       type(scene) :: curr_scene
       real :: camera_vec(3), camera_pos(3), up_vec(3), h_vec(3), v_vec(3)
@@ -108,7 +74,6 @@ program fortran_raytracer
     end function setup_params
 
     subroutine trace_rays(curr_scene, canvas)
-      use raytrace_params, only:scene
       use, intrinsic :: iso_fortran_env, only:uint8
       type(scene), intent(in) :: curr_scene
       integer(uint8), contiguous, intent(inout) ::  canvas(:,:,:)
@@ -125,7 +90,6 @@ program fortran_raytracer
 
     !generates each pixel
     pure function get_ray(curr_scene, i, j) result(ray)
-      use raytrace_params, only:scene
       use, intrinsic :: iso_fortran_env, only:uint8
       type(scene), intent(in) :: curr_scene
       integer, intent(in) :: i, j
@@ -138,7 +102,6 @@ program fortran_raytracer
     end function get_ray
 
     pure function get_ray_color(curr_scene,r) result(color)
-      use raytrace_params, only:scene, sphere, plane
       use, intrinsic :: iso_fortran_env, only:uint8
       integer(uint8) :: color(4)
       type(scene), intent(in) :: curr_scene
@@ -185,7 +148,6 @@ program fortran_raytracer
     end function get_ray_color
 
     pure function get_sphere_intersection(curr_sphere, r, c)result(t)
-      use raytrace_params, only:sphere
       type(sphere), intent(in) :: curr_sphere
       real, intent(in) :: r(3), c(3)
       real :: t
@@ -193,7 +155,6 @@ program fortran_raytracer
     end function get_sphere_intersection
 
     pure function get_plane_intersection(curr_plane, r, c) result(t)
-      use raytrace_params, only:plane
       type(plane), intent(in) :: curr_plane
       real, intent(in) :: r(3), c(3)
       real :: t
@@ -215,4 +176,4 @@ program fortran_raytracer
       real :: p(3)
       p = v / norm2(v)
     end function normalize
-end program fortran_raytracer
+end module raytracer

@@ -5,7 +5,8 @@ project(fortran_raytracer CXX C Fortran)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(fortran_raytracer
-  fortran_raytracer.f90
+  main.f90
+  raytracer.f90
   c_bindings.f90
   canvas.c
 )
