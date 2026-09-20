@@ -40,9 +40,13 @@ program fortran_raytracer
 
   allocate(canvas(3,curr_scene%width,curr_scene%height))
 
+  !$omp parallel
+
   call trace_rays(curr_scene, canvas)
 
   call generate_png("output.png", curr_scene%width,curr_scene%height, canvas)
+
+  !$omp end parallel
 
   deallocate(canvas)
 
@@ -62,7 +66,7 @@ program fortran_raytracer
       v_vec = normalize(compute_cross_product(camera_vec, h_vec))
 
       curr_scene = scene(&
-        1024, 1024,& !width, height
+        10000, 10000,& !width, height
         up_vec,&
         camera_pos, camera_vec,&
         h_vec, v_vec,&
@@ -103,14 +107,14 @@ program fortran_raytracer
       type(scene), intent(in) :: curr_scene
       integer(uint8), contiguous, intent(inout) ::  canvas(:,:,:)
       integer :: i, j
-      !$omp parallel do collapse(2) default(shared) private(i,j)
+
+      !$omp do collapse(2) private(i,j)
       do j=1, curr_scene%height
         do i = 1, curr_scene%width
           canvas(:,i,j) = get_ray_color(curr_scene, get_ray(curr_scene, i,j))
         end do
       end do
-
-      !$omp end parallel do
+      !$omp end do
     end subroutine trace_rays
 
     !generates each pixel
