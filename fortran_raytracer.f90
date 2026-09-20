@@ -1,14 +1,19 @@
 module raytrace_params
   use , intrinsic :: iso_c_binding, only:c_int
   use, intrinsic :: iso_fortran_env, only:uint8
+    implicit none(type, external)
+  type :: scene
+    integer(c_int) :: width , height
 
-  implicit none(type, external)
-  integer(c_int), parameter :: width = 1024, height = 1024
+    real :: up_vec(3), camera_pos(3), camera_vec(3)
 
-  real, parameter :: camera_pos(3) = [500.0,50.0, -50.0]
-  real, parameter :: camera_vec(3) = [-1.0,1.0,0.0]
+    real :: h_vec(3), v_vec(3)
 
-  real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
+    type(plane) , allocatable :: planes(:)
+    type(sphere) , allocatable :: spheres(:)
+
+    integer(uint8) :: sky_color(3)
+  end type scene
 
   type :: sphere
     real :: radius, point(3)
@@ -20,46 +25,113 @@ module raytrace_params
     integer(uint8) :: color(3)
   end type plane
 
-  type :: scene
-    type(plane) , allocatable :: planes(:)
-    type(sphere) , allocatable :: spheres(:)
-    integer(uint8) :: sky_color(3)
-  end type scene
-
-  real :: h_vec(3), v_vec(3)
-  type(scene) :: curr_scene
 end module raytrace_params
 
 program fortran_raytracer
   use , intrinsic :: iso_c_binding, only:c_char
-  use raytrace_params
+  use, intrinsic :: iso_fortran_env, only:uint8
 
+  use raytrace_params, only:scene
   implicit none(type, external)
-  integer(uint8), allocatable, target ::  canvas(:,:,:)
+  integer(uint8),allocatable ::  canvas(:,:,:)
+  type(scene) :: curr_scene
 
+  curr_scene = setup_params()
 
-  allocate(canvas(3,width,height))
-  call draw_canvas(canvas)
-  call generate_png("output.png", canvas)
+  allocate(canvas(3,curr_scene%width,curr_scene%height))
+
+  call trace_rays(curr_scene, canvas)
+
+  call generate_png("output.png", curr_scene%width,curr_scene%height, canvas)
+
   deallocate(canvas)
 
   contains
 
+    function setup_params() result(curr_scene)
+      use raytrace_params, only:scene, sphere, plane
+      use, intrinsic :: iso_fortran_env, only:uint8
+      type(scene) :: curr_scene
+      real :: camera_vec(3), camera_pos(3), up_vec(3), h_vec(3), v_vec(3)
+
+      up_vec = [0.0,0.0,1.0]
+      camera_pos = [500.0,50.0, -50.0]
+      camera_vec = [-1.0,1.0,0.0]
+
+      h_vec = normalize(compute_cross_product(camera_vec, up_vec))
+      v_vec = normalize(compute_cross_product(camera_vec, h_vec))
+
+      curr_scene = scene(&
+        100000, 10000,& !width, height
+        up_vec,&
+        camera_pos, camera_vec,&
+        h_vec, v_vec,&
+          [&!planes
+            plane(&
+              [0.0,0.0,-20.0],& !point
+              [0.2,0.2,1.0],& !normal
+
+              [91, 206, 250]& !color
+            ),&
+
+            plane(&
+              [0.0, 200.0,-20.0],& !point
+              [-0.2,-0.2,1.0],& !normal
+
+              [249, 169, 184]& !color
+            )&
+
+          ],&
+
+          [& ! spheres
+            sphere(&
+              10,& ! radius
+              [20.0, 0.0, 0.0],&
+
+              [255,0,0]& !color
+            )&
+          ],&
+
+          !sky color
+          [107, 221, 229]&
+        )
+    end function setup_params
+
+    subroutine trace_rays(curr_scene, canvas)
+      use raytrace_params, only:scene
+      use, intrinsic :: iso_fortran_env, only:uint8
+      type(scene), intent(in) :: curr_scene
+      integer(uint8), contiguous, intent(inout) ::  canvas(:,:,:)
+      integer :: i, j
+      !$omp parallel do collapse(2) default(shared) private(i,j)
+      do j=1, curr_scene%height
+        do i = 1, curr_scene%width
+          canvas(:,i,j) = get_ray_color(curr_scene, get_ray(curr_scene, i,j))
+        end do
+      end do
+
+      !$omp end parallel do
+    end subroutine trace_rays
+
     !generates each pixel
-    pure function get_ray(i, j) result(ray)
-      use raytrace_params
+    pure function get_ray(curr_scene, i, j) result(ray)
+      use raytrace_params, only:scene
+      use, intrinsic :: iso_fortran_env, only:uint8
+      type(scene), intent(in) :: curr_scene
       integer, intent(in) :: i, j
       real :: i_com, j_com, ray(3)
 
-      i_com = (real(2*i) / real(width)) - 1.0
-      j_com = (real(2*j) / real(height)) - 1.0
+      i_com = (real(2*i) / real(curr_scene%width)) - 1.0
+      j_com = (real(2*j) / real(curr_scene%height)) - 1.0
+      ray = normalize(curr_scene%camera_vec + i_com * curr_scene%h_vec + j_com * curr_scene%v_vec)
 
-      ray = normalize(camera_vec + i_com * h_vec + j_com * v_vec)
     end function get_ray
 
-    pure function get_ray_color(r) result(color)
-      use raytrace_params
+    pure function get_ray_color(curr_scene,r) result(color)
+      use raytrace_params, only:scene, sphere, plane
+      use, intrinsic :: iso_fortran_env, only:uint8
       integer(uint8) :: color(3)
+      type(scene), intent(in) :: curr_scene
       real, intent(in) :: r(3)
       real, parameter :: largest = huge(1.0)
       real :: smallest, curr, scratch
@@ -67,25 +139,31 @@ program fortran_raytracer
 
       color = curr_scene%sky_color
       smallest = largest
+      curr = smallest
 
       do i=1, size(curr_scene%planes)
-        curr = get_plane_intersection(curr_scene%planes(i), r, camera_pos)
+        curr = get_plane_intersection(curr_scene%planes(i), r, curr_scene%camera_pos)
         if(0.0 < curr .and. curr < smallest) then
           smallest = curr
           color = curr_scene%planes(i)%color
-          scratch = mod(floor(norm2(curr * r + camera_pos - curr_scene%planes(i)%point)), 50)
-          if (scratch < 40) then
+          !
+          scratch = mod(&
+            floor(&
+            norm2(&
+            curr * r + curr_scene%camera_pos - curr_scene%planes(i)%point)), 50&
+          )
+
+          if (scratch < 25) then
+              ! color = [255,255,255]
             color = [&
               int(abs(sin(scratch/2)) * 255.0,uint8),&
               int(abs(cos(scratch/3)) * 255.0, uint8),&
               int(abs(sin(scratch/5)) * 255.0, uint8)&
               ]
-
           end if
         end if
       end do
 
-      !
       ! do i=1, sizeof(curr_scene%spheres)
       !   curr_sphere = curr_scene%spheres(i)
       !   curr = get_sphere_intersection(curr_sphere, r, camera_pos)
@@ -104,7 +182,7 @@ program fortran_raytracer
 
     end function get_sphere_intersection
 
-    pure function get_plane_intersection(curr_plane, r, c)result(t)
+    pure function get_plane_intersection(curr_plane, r, c) result(t)
       use raytrace_params, only:plane
       type(plane), intent(in) :: curr_plane
       real, intent(in) :: r(3), c(3)
@@ -128,57 +206,15 @@ program fortran_raytracer
       p = v / norm2(v)
     end function normalize
 
-    !concurrently draws pixels on the canvas
-    subroutine draw_canvas(canvas)
-      use raytrace_params
-      integer(uint8), allocatable, target ,intent(inout) :: canvas(:,:,:)
-      integer :: i, j
-
-      h_vec = normalize(compute_cross_product(camera_vec, up_vec))
-      v_vec = normalize(compute_cross_product(camera_vec, h_vec))
-
-      curr_scene = scene(&
-          [&!planes
-            plane(&
-              [0.0,0.0,-20.0],& !point
-              [0.2,0.2,1.0],& !normal
-
-              [91, 206, 250]& !color
-            ),&
-
-            plane(&
-              [0.0, 200.0,-20.0],& !point
-              [-0.2,-0.2,1.0],& !normal
-
-              [249, 169, 184]& !color
-            )&
-          ],&
-
-          [& ! spheres
-            sphere(&
-              10,& ! radius
-              [20.0, 0.0, 0.0],&
-
-              [255,0,0]&
-            )&
-          ],&
-
-          !sky color
-          [107, 221, 229]&
-        )
-
-      do concurrent(i=1:width, j=1:height)
-        canvas(:,i,j) = get_ray_color(get_ray(i,j))
-      end do
-    end subroutine draw_canvas
-
     !outputs the canvas to a png file via c ffi
-    subroutine generate_png(name, canvas)
+    subroutine generate_png(name,width, height, canvas)
       use raytrace_params
       use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_loc, c_null_char
+      use, intrinsic :: iso_fortran_env, only:uint8
 
       character(len=*), intent(in) :: name
-      integer(uint8), allocatable, target, intent(in) ::  canvas(:,:,:)
+      integer(uint8), contiguous ,target, intent(in) ::  canvas(:,:,:)
+      integer(c_int), intent(in), value :: width, height
       character(kind=c_char, len=:), allocatable :: c_name
       type(c_ptr) ::  pixels
 
