@@ -28,27 +28,31 @@ module raytrace_params
 end module raytrace_params
 
 program fortran_raytracer
-  use , intrinsic :: iso_c_binding, only:c_char
+  use , intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr
   use, intrinsic :: iso_fortran_env, only:uint8
-
+  use c_bindings, only :close_window, open_window, generate_png
   use raytrace_params, only:scene
+
   implicit none(type, external)
   integer(uint8),allocatable ::  canvas(:,:,:)
   type(scene) :: curr_scene
+  type(c_ptr) :: window
+  window = c_null_ptr
 
   curr_scene = setup_params()
 
   allocate(canvas(3,curr_scene%width,curr_scene%height))
 
+  window = open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
+
   !$omp parallel
-
   call trace_rays(curr_scene, canvas)
-
-  call generate_png("output.png", curr_scene%width,curr_scene%height, canvas)
-
   !$omp end parallel
 
+  call generate_png("output.png", curr_scene%width,curr_scene%height, canvas)
   deallocate(canvas)
+
+  call close_window(window)
 
   contains
 
@@ -66,7 +70,7 @@ program fortran_raytracer
       v_vec = normalize(compute_cross_product(camera_vec, h_vec))
 
       curr_scene = scene(&
-        10000, 10000,& !width, height
+        1024, 1024,& !width, height
         up_vec,&
         camera_pos, camera_vec,&
         h_vec, v_vec,&
@@ -209,38 +213,4 @@ program fortran_raytracer
       real :: p(3)
       p = v / norm2(v)
     end function normalize
-
-    !outputs the canvas to a png file via c ffi
-    subroutine generate_png(name,width, height, canvas)
-      use raytrace_params
-      use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_loc, c_null_char
-      use, intrinsic :: iso_fortran_env, only:uint8
-
-      character(len=*), intent(in) :: name
-      integer(uint8), contiguous ,target, intent(in) ::  canvas(:,:,:)
-      integer(c_int), intent(in), value :: width, height
-      character(kind=c_char, len=:), allocatable :: c_name
-      type(c_ptr) ::  pixels
-
-      interface
-        function c_generate_png(name, width, height, pixels) bind(C, name="save_canvas")
-          use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_char
-          implicit none(type, external)
-          integer(c_int) :: c_generate_png
-          character(c_char), intent(in) :: name(*)
-
-          integer(c_int), value, intent(in) :: width, height
-          type(c_ptr), value, intent(in) ::  pixels
-        end function c_generate_png
-      end interface
-
-      pixels = c_loc(canvas(1,1,1))
-
-      c_name = name // c_null_char
-
-      if(c_generate_png(c_name, width,height, pixels) == 0) then
-        print *, "failed to generate png file\n"
-      end if
-    end subroutine generate_png
-
 end program fortran_raytracer

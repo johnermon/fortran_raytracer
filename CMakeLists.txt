@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 4.3.0)
 
-project(fortran_raytracer C Fortran)
+project(fortran_raytracer CXX C Fortran)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(fortran_raytracer fortran_raytracer.f90 canvas.c)
+add_executable(fortran_raytracer
+  fortran_raytracer.f90
+  c_bindings.f90
+  canvas.c
+)
 
 include(FetchContent)
 
