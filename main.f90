@@ -4,11 +4,11 @@ program fortran_raytracer
   use c_bindings, only :&
     close_window, open_window, generate_png, update_window, register_io_callback, usleep
 
-  use raytracer, only:setup_params, trace_rays, scene, move_camera
+  use raytracer, only:setup_params, trace_rays, scene, move_camera, rotate_camera
   use input
 
   implicit none(type, external)
-  integer(uint8),allocatable ::  canvas(:,:,:)
+  integer(uint8), allocatable ::  canvas(:,:,:)
   type(scene) :: curr_scene
   type(c_ptr) :: window
   window = c_null_ptr
@@ -24,7 +24,6 @@ program fortran_raytracer
   do
     call trace_rays(curr_scene, canvas)
     call update_window(window, canvas)
-    call usleep(33333)
 
     if(is_pressed(esc)) then
       exit
@@ -35,7 +34,10 @@ program fortran_raytracer
       call usleep(500000)
     end if
 
-    call move_camera(curr_scene, get_dir_vec())
+    call move_camera(curr_scene, keyboard_get_dir())
+    call rotate_camera(curr_scene, keyboard_get_rotation())
+
+    call usleep(16666)
   end do
 
 

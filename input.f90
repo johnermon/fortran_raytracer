@@ -5,7 +5,7 @@ module input
 
   integer, parameter :: w = 87, a = 65, s = 83, d = 68, space =32, shift = 340
 
-  integer, parameter :: up = 265, down = 264, left = 263, right = 262
+  integer, parameter :: up = 265, down = 264, left = 263, right = 262, q = 81, e = 69
 
   integer, parameter :: p = 80, esc = 256
 
@@ -23,7 +23,7 @@ module input
 
     end subroutine update_input
 
-    pure function get_dir_vec() result(dir)
+    pure function keyboard_get_dir() result(dir)
       real :: dir(3)
       dir = [0,0,0]
 
@@ -48,5 +48,32 @@ module input
         dir(3) = dir(3) + 1.0
       end if
 
-    end function get_dir_vec
+    end function keyboard_get_dir
+
+    pure function keyboard_get_rotation() result(dir)
+      real :: dir(3)
+      dir = [0,0,0]
+
+      if(is_pressed(up)) then
+        dir(1) = dir(1) - 0.05
+      end if
+      if(is_pressed(down)) then
+        dir(1) = dir(1) + 0.05
+      end if
+
+      if(is_pressed(left)) then
+        dir(2) = dir(2) - 0.05
+      end if
+      if(is_pressed(right)) then
+        dir(2) = dir(2) + 0.05
+      end if
+
+      if(is_pressed(q)) then
+        dir(3) = dir(3) - 0.05
+      end if
+      if(is_pressed(e)) then
+        dir(3) = dir(3) + 0.05
+      end if
+
+    end function keyboard_get_rotation
 end module input

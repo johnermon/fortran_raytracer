@@ -81,6 +81,20 @@ module raytracer
       curr_scene%camera_pos = curr_scene%camera_pos + curr_scene%v_vec * dir_vec(3)
     end subroutine move_camera
 
+    subroutine rotate_camera(curr_scene, rotation_vec)
+      type(scene), intent(inout) :: curr_scene
+      real, intent(in) :: rotation_vec(3)
+
+        curr_scene%camera_vec = normalize(curr_scene%camera_vec + curr_scene%v_vec * rotation_vec(1))
+        curr_scene%v_vec = normalize(compute_cross_product(curr_scene%camera_vec, curr_scene%h_vec))
+
+        curr_scene%camera_vec = normalize(curr_scene%camera_vec + curr_scene%h_vec * rotation_vec(2))
+        curr_scene%h_vec = normalize(compute_cross_product(curr_scene%v_vec, curr_scene%camera_vec))
+
+        curr_scene%h_vec = normalize(curr_scene%h_vec+ curr_scene%v_vec * rotation_vec(3))
+        curr_scene%v_vec = normalize(compute_cross_product(curr_scene%camera_vec, curr_scene%h_vec))
+    end subroutine rotate_camera
+
     subroutine trace_rays(curr_scene, canvas)
       use, intrinsic :: iso_fortran_env, only:uint8
       type(scene), intent(in) :: curr_scene
