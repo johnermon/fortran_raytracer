@@ -37,6 +37,11 @@ module c_bindings
       type(c_ptr), value :: window
       type(c_funptr), value :: callback
     end subroutine c_register_io_callback
+
+    subroutine usleep(usec) bind(C, name="usleep")
+      use, intrinsic :: iso_c_binding, only:c_int32_t
+      integer(c_int32_t), value :: usec
+    end subroutine usleep
   end interface
 
   contains
@@ -47,6 +52,7 @@ module c_bindings
       character(len=*), intent(in) :: name
       integer(uint8), contiguous ,target, intent(in) ::  canvas(:,:,:)
       integer(uint8), allocatable, target ::  tmp_canvas(:,:,:)
+
       integer(c_int), intent(in), value :: width, height
       character(kind=c_char, len=:), allocatable :: c_name
       type(c_ptr) ::  pixels

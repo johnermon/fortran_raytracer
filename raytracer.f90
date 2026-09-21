@@ -73,6 +73,14 @@ module raytracer
         )
     end function setup_params
 
+    subroutine move_camera(curr_scene, dir_vec)
+      type(scene), intent(inout) :: curr_scene
+      real, intent(in) :: dir_vec(3)
+      curr_scene%camera_pos = curr_scene%camera_pos + normalize(curr_scene%camera_vec) * dir_vec(1)
+      curr_scene%camera_pos = curr_scene%camera_pos + curr_scene%h_vec * dir_vec(2)
+      curr_scene%camera_pos = curr_scene%camera_pos + curr_scene%v_vec * dir_vec(3)
+    end subroutine move_camera
+
     subroutine trace_rays(curr_scene, canvas)
       use, intrinsic :: iso_fortran_env, only:uint8
       type(scene), intent(in) :: curr_scene
@@ -85,7 +93,8 @@ module raytracer
           canvas(:,i,j) = get_ray_color(curr_scene, get_ray(curr_scene, i,j))
         end do
       end do
-      !$omp parallel end do
+      !$omp end parallel do
+
     end subroutine trace_rays
 
     !generates each pixel

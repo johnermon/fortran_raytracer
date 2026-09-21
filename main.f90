@@ -2,10 +2,10 @@ program fortran_raytracer
   use , intrinsic :: iso_c_binding, only: c_ptr, c_null_ptr, c_funloc
   use, intrinsic :: iso_fortran_env, only:uint8
   use c_bindings, only :&
-    close_window, open_window, generate_png, update_window, register_io_callback
+    close_window, open_window, generate_png, update_window, register_io_callback, usleep
 
-  use raytracer, only:setup_params, trace_rays, scene
-  use input, only:update_input
+  use raytracer, only:setup_params, trace_rays, scene, move_camera
+  use input
 
   implicit none(type, external)
   integer(uint8),allocatable ::  canvas(:,:,:)
@@ -24,10 +24,20 @@ program fortran_raytracer
   do
     call trace_rays(curr_scene, canvas)
     call update_window(window, canvas)
-    call sleep(1)
+    call usleep(33333)
+
+    if(is_pressed(esc)) then
+      exit
+    end if
+
+    if(is_pressed(p)) then
+      call generate_png("output.png", curr_scene%width,curr_scene%height, canvas)
+      call usleep(500000)
+    end if
+
+    call move_camera(curr_scene, get_dir_vec())
   end do
 
-  call generate_png("output.png", curr_scene%width,curr_scene%height, canvas)
 
   deallocate(canvas)
 
