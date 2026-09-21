@@ -79,13 +79,13 @@ module raytracer
       integer(uint8), contiguous, intent(inout) ::  canvas(:,:,:)
       integer :: i, j
 
-      !$omp do collapse(2) private(i,j)
+      !$omp parallel do collapse(2) private(i,j)
       do j=1, curr_scene%height
         do i = 1, curr_scene%width
           canvas(:,i,j) = get_ray_color(curr_scene, get_ray(curr_scene, i,j))
         end do
       end do
-      !$omp end do
+      !$omp parallel end do
     end subroutine trace_rays
 
     !generates each pixel

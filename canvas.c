@@ -5,20 +5,11 @@
 
 #include "stb_image_write.h"
 
-struct mfb_window *open_window(const char *name, int width, int height) {
+// here to coerce the signed int in input into unsigned int
+struct mfb_window *mfb_open_singed_int(const char *name, int width,
+                                       int height) {
   struct mfb_window *window = mfb_open(name, width, height);
   return window;
-}
-//
-// void generate_io_callback(struct mfb_window *window,
-//                           mfb_keyboard_func callback) {
-//   mfb_set_keyboard_callback(window, callback);
-// }
-
-void close_window(struct mfb_window *window) { mfb_close(window); }
-
-int update_window(struct mfb_window *window, void *buffer) {
-  return mfb_update(window, buffer);
 }
 
 int save_canvas(const char *filename, int width, int height,

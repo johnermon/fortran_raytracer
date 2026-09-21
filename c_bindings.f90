@@ -1,5 +1,44 @@
 module c_bindings
   implicit none(type, external)
+  interface
+    function c_generate_png(name, width, height, pixels) bind(C, name="save_canvas")
+      use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_char
+      implicit none(type, external)
+      integer(c_int) :: c_generate_png
+      character(c_char), intent(in) :: name(*)
+      integer(c_int), value :: width, height
+      type(c_ptr), value ::  pixels
+    end function c_generate_png
+
+    function c_open_window(name, width, height) bind(C, name="mfb_open_singed_int")
+      use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int
+      implicit none(type, external)
+      type(c_ptr) :: c_open_window
+      character(c_char), intent(in) :: name(*)
+      integer(c_int), value :: width, height
+    end function c_open_window
+
+    subroutine c_close_window(window) bind(C, name="mfb_close")
+      use , intrinsic :: iso_c_binding, only: c_ptr
+      implicit none(type, external)
+      type(c_ptr), value :: window
+    end subroutine c_close_window
+
+    function c_update_window(window, pixels) bind(C, name="mfb_update")
+      use , intrinsic :: iso_c_binding, only: c_ptr, c_int
+      implicit none(type, external)
+      integer(c_int) :: c_update_window
+      type(c_ptr), value ::  pixels, window
+    end function c_update_window
+
+    subroutine c_register_io_callback(window, callback) bind(C, name="mfb_set_keyboard_callback")
+      use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_funptr
+      implicit none(type, external)
+      type(c_ptr), value :: window
+      type(c_funptr), value :: callback
+    end subroutine c_register_io_callback
+  end interface
+
   contains
     !outputs the canvas to a png file via c ffi
     subroutine generate_png(name, width, height, canvas)
@@ -11,17 +50,6 @@ module c_bindings
       integer(c_int), intent(in), value :: width, height
       character(kind=c_char, len=:), allocatable :: c_name
       type(c_ptr) ::  pixels
-
-      interface
-        function c_generate_png(name, width, height, pixels) bind(C, name="save_canvas")
-          use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_char
-          implicit none(type, external)
-          integer(c_int) :: c_generate_png
-          character(c_char), intent(in) :: name(*)
-          integer(c_int), value, intent(in) :: width, height
-          type(c_ptr), value, intent(in) ::  pixels
-        end function c_generate_png
-      end interface
 
       c_name = name // c_null_char
 
@@ -46,15 +74,6 @@ module c_bindings
       character(kind=c_char, len=:), allocatable :: c_name
       type(c_ptr) :: window
 
-      interface
-        function c_open_window(name, width, height) bind(C, name="open_window")
-          use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int
-          implicit none(type, external)
-          type(c_ptr) :: c_open_window
-          character(c_char), intent(in) :: name(*)
-          integer(c_int), intent(in), value :: width, height
-        end function c_open_window
-      end interface
       c_name = name // c_null_char
       window = c_open_window(c_name, width,height)
 
@@ -68,13 +87,6 @@ module c_bindings
     subroutine close_window(window)
       use , intrinsic :: iso_c_binding, only: c_ptr
       type(c_ptr), intent(in) :: window
-      interface
-        subroutine c_close_window(window) bind(C, name="close_window")
-          use , intrinsic :: iso_c_binding, only: c_ptr
-          implicit none(type, external)
-          type(c_ptr), intent(in) :: window
-        end subroutine c_close_window
-      end interface
       call c_close_window(window)
     end subroutine close_window
 
@@ -85,40 +97,26 @@ module c_bindings
       type(c_ptr) ::  pixels
       type(c_ptr), intent(in) :: window
 
-      interface
-        function c_update_window(window, pixels) bind(C, name="update_window")
-          use , intrinsic :: iso_c_binding, only: c_ptr, c_int
-          implicit none(type, external)
-          integer(c_int) :: c_update_window
-          type(c_ptr), value, intent(in) ::  pixels, window
-        end function c_update_window
-      end interface
-
       pixels = c_loc(canvas(1,1,1))
-      !note for future me, get to proper error handling here
+      ! for future me, get to proper error handling here
+      !
       ! MFB_STATE_OK             =  0,
       ! MFB_STATE_EXIT           = -1,
       ! MFB_STATE_INVALID_WINDOW = -2,
       ! MFB_STATE_INVALID_BUFFER = -3,
       ! MFB_STATE_INTERNAL_ERROR = -4,
+
       if(.not. (c_update_window(window, pixels) == 0)) then
         print *, "failed to update window\n"
         error stop
       end if
-
     end subroutine update_window
 
-    ! subroutine generate_io_callback(window, callback)
-    !   use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_funptr
-    !   type(c_ptr), intent(in) :: window
-    !   type(c_funptr), intent(in) :: callback
-    !   interface
-    !     subroutine c_generate_io_callback(window, callback) bind(C, name="generate_io_callback")
-    !       implicit none(type, external)
-    !       type(c_ptr), intent(in) :: window
-    !       type(c_funptr), intent(in) :: callback
-    !     end subroutine c_generate_io_callback
-    !   end interface
-    !   generate_io_callback(window, callback)
-    ! end subroutine generate_io_callback
+    subroutine register_io_callback(window, callback)
+      use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_funptr
+      type(c_ptr), value :: window
+      type(c_funptr), value :: callback
+      call c_register_io_callback(window, callback)
+    end subroutine register_io_callback
+
 end module c_bindings
