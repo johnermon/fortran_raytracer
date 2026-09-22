@@ -4,18 +4,18 @@ module c_bindings
     function c_generate_png(name, width, height, pixels) bind(C, name="save_canvas")
       use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_char
       implicit none(type, external)
-      integer(c_int) :: c_generate_png
       character(c_char), intent(in) :: name(*)
       integer(c_int), value :: width, height
       type(c_ptr), value ::  pixels
+      integer(c_int) :: c_generate_png
     end function c_generate_png
 
     function c_open_window(name, width, height) bind(C, name="mfb_open_singed_int")
       use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int
       implicit none(type, external)
-      type(c_ptr) :: c_open_window
       character(c_char), intent(in) :: name(*)
       integer(c_int), value :: width, height
+      type(c_ptr) :: c_open_window
     end function c_open_window
 
     subroutine c_close_window(window) bind(C, name="mfb_close")
@@ -28,7 +28,7 @@ module c_bindings
       use , intrinsic :: iso_c_binding, only: c_ptr, c_int
       implicit none(type, external)
       integer(c_int) :: c_update_window
-      type(c_ptr), value ::  pixels, window
+      type(c_ptr), value :: window, pixels
     end function c_update_window
 
     subroutine c_register_io_callback(window, callback) bind(C, name="mfb_set_keyboard_callback")
@@ -40,6 +40,7 @@ module c_bindings
 
     subroutine usleep(usec) bind(C, name="usleep")
       use, intrinsic :: iso_c_binding, only:c_int32_t
+      implicit none(type, external)
       integer(c_int32_t), value :: usec
     end subroutine usleep
   end interface
@@ -49,12 +50,13 @@ module c_bindings
     subroutine generate_png(name, width, height, canvas)
       use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char
       use, intrinsic :: iso_fortran_env, only:uint8
-      character(len=*), intent(in) :: name
-      integer(uint8), contiguous ,target, intent(in) ::  canvas(:,:,:)
-      integer(uint8), allocatable, target ::  tmp_canvas(:,:,:)
 
+      character(len=*), intent(in) :: name
       integer(c_int), intent(in), value :: width, height
+      integer(uint8), contiguous ,target, intent(in) ::  canvas(:,:,:)
+
       character(kind=c_char, len=:), allocatable :: c_name
+      integer(uint8), allocatable, target ::  tmp_canvas(:,:,:)
       type(c_ptr) ::  pixels
 
       c_name = name // c_null_char
@@ -77,8 +79,9 @@ module c_bindings
       use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_null_char, c_null_ptr, c_associated
       character(len=*), intent(in) :: name
       integer(c_int), intent(in), value :: width, height
-      character(kind=c_char, len=:), allocatable :: c_name
       type(c_ptr) :: window
+
+      character(kind=c_char, len=:), allocatable :: c_name
 
       c_name = name // c_null_char
       window = c_open_window(c_name, width,height)
@@ -99,10 +102,10 @@ module c_bindings
     subroutine update_window(window, canvas)
       use , intrinsic :: iso_c_binding, only: c_ptr, c_loc
       use, intrinsic :: iso_fortran_env, only:uint8
-      integer(uint8), contiguous ,target, intent(in) ::  canvas(:,:,:)
-      type(c_ptr) ::  pixels
       type(c_ptr), intent(in) :: window
+      integer(uint8), contiguous ,target, intent(in) ::  canvas(:,:,:)
 
+      type(c_ptr) ::  pixels
       pixels = c_loc(canvas(1,1,1))
       ! for future me, get to proper error handling here
       !

@@ -2,75 +2,88 @@ module raytracer
   use , intrinsic :: iso_c_binding, only:c_int
   use, intrinsic :: iso_fortran_env, only:uint8
   implicit none(type, external)
-  public
+  private
+  public :: trace_rays, scene, plane, sphere
+
   type :: scene
     integer(c_int) :: width , height
-
     real :: up_vec(3), camera_pos(3), camera_vec(3)
-
     real :: h_vec(3), v_vec(3)
-
     integer(uint8) :: sky_color(4)
 
     type(plane) , allocatable :: planes(:)
     type(sphere) , allocatable :: spheres(:)
-
+    contains
+      procedure :: move_camera, rotate_camera, trace_rays, get_ray_color, get_ray
   end type scene
+  interface scene
+    module procedure :: scene_new
+  end interface scene
+
+  type :: plane
+    real:: point(3), normal(3)
+    integer(uint8) :: color(4)
+    contains
+      procedure :: get_plane_intersection
+  end type plane
+  interface plane
+    module procedure :: plane_new
+  end interface plane
 
   type :: sphere
     real :: radius, point(3)
     integer(uint8) :: color(4)
   end type sphere
 
-  type :: plane
-    real:: point(3), normal(3)
-    integer(uint8) :: color(4)
-  end type plane
+
   contains
-    pure function create_scene(width, height, camera_pos, camera_vec, sky_color, planes, spheres) result(new_scene)
+    pure function scene_new(&
+      width, height, camera_pos, camera_vec, sky_color, planes, spheres&
+    ) result(new_scene)
       use, intrinsic :: iso_c_binding, only:c_int
-      type(scene) :: new_scene
       integer(c_int), intent(in) :: width, height
       real, intent(in) :: camera_pos(3), camera_vec(3)
-      real :: h_vec(3), v_vec(3)
-      real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
       integer, intent(in) :: sky_color(4)
       type(plane), intent(in) :: planes(:)
       type(sphere), intent(in) :: spheres(:)
+      type(scene) :: new_scene
+
+      real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
+      real :: h_vec(3), v_vec(3)
 
       h_vec = normalize(compute_cross_product(camera_vec, up_vec))
       v_vec = normalize(compute_cross_product(camera_vec, h_vec))
 
-      new_scene = scene(&
-        width,&
-        height,&
-        up_vec,&
-        camera_pos, camera_vec,&
-        h_vec,&
-        v_vec,&
-        sky_color,&
-        planes,&
-        spheres&
-      )
-    end function create_scene
+      new_scene%width = width
+      new_scene%height = height
+      new_scene%up_vec = up_vec
+      new_scene%camera_pos = camera_pos
+      new_scene%camera_vec = camera_vec
+      new_scene%h_vec = h_vec
+      new_scene%v_vec = v_vec
+      new_scene%sky_color = sky_color
+      new_scene%planes = planes
+      new_scene%spheres = spheres
 
-    pure function create_plane(point, normal, color) result(new_plane)
+    end function scene_new
+
+    pure function plane_new(point, normal, color) result(new_plane)
       real, intent(in) :: point(3), normal(3)
       integer, intent(in) :: color(4)
       type(plane) :: new_plane
-      new_plane = plane(&
-        point, normalize(normal), color&
-      )
-    end function create_plane
+      new_plane%point = point
+      new_plane%normal = normalize(normal)
+      new_plane%color = color
+    end function plane_new
 
-    subroutine move_camera(curr_scene, dir_vec)
-      type(scene), intent(inout) :: curr_scene
+    subroutine move_camera(this, dir_vec)
+      class(scene), intent(inout) :: this
       real, intent(in) :: dir_vec(3)
       associate(&
-        camera_vec => curr_scene%camera_vec,&
-        h_vec => curr_scene%h_vec,&
-        v_vec => curr_scene%v_vec,&
-        camera_pos => curr_scene%camera_pos&
+        camera_vec => this%camera_vec,&
+        h_vec => this%h_vec,&
+        v_vec => this%v_vec,&
+        camera_pos => this%camera_pos&
       )
         camera_pos = camera_pos + normalize(camera_vec) * dir_vec(1)
         camera_pos = camera_pos + h_vec * dir_vec(2)
@@ -78,13 +91,13 @@ module raytracer
       end associate
     end subroutine move_camera
 
-    subroutine rotate_camera(curr_scene, rotation_vec)
-      type(scene), intent(inout) :: curr_scene
+    subroutine rotate_camera(this, rotation_vec)
+      class(scene), intent(inout) :: this
       real, intent(in) :: rotation_vec(3)
       associate(&
-        camera_vec => curr_scene%camera_vec,&
-        h_vec => curr_scene%h_vec,&
-        v_vec => curr_scene%v_vec&
+        camera_vec => this%camera_vec,&
+        h_vec => this%h_vec,&
+        v_vec => this%v_vec&
       )
         camera_vec = normalize(camera_vec + v_vec * rotation_vec(1))
         v_vec = normalize(compute_cross_product(camera_vec, h_vec))
@@ -97,16 +110,16 @@ module raytracer
       end associate
     end subroutine rotate_camera
 
-    subroutine trace_rays(curr_scene, canvas)
+    subroutine trace_rays(this, canvas)
       use, intrinsic :: iso_fortran_env, only:uint8
-      type(scene), intent(in) :: curr_scene
+      class(scene), intent(in) :: this
       integer(uint8), contiguous, intent(inout) ::  canvas(:,:,:)
       integer :: i, j
 
       !$omp parallel do collapse(2) private(i,j)
-      do j=1, curr_scene%height
-        do i = 1, curr_scene%width
-          canvas(:,i,j) = get_ray_color(curr_scene, get_ray(curr_scene, i,j))
+      do j=1, this%height
+        do i = 1, this%width
+          canvas(:,i,j) = this%get_ray_color(this%get_ray(i,j))
         end do
       end do
       !$omp end parallel do
@@ -114,42 +127,42 @@ module raytracer
     end subroutine trace_rays
 
     !generates each pixel
-    pure function get_ray(curr_scene, i, j) result(ray)
+    pure function get_ray(this, i, j) result(ray)
       use, intrinsic :: iso_fortran_env, only:uint8
-      type(scene), intent(in) :: curr_scene
+      class(scene), intent(in) :: this
       integer, intent(in) :: i, j
       real :: i_com, j_com, ray(3)
 
-      i_com = (real(2*i) / real(curr_scene%width)) - 1.0
-      j_com = (real(2*j) / real(curr_scene%height)) - 1.0
+      i_com = (real(2*i) / real(this%width)) - 1.0
+      j_com = (real(2*j) / real(this%height)) - 1.0
 
-      ray = normalize(curr_scene%camera_vec + i_com * curr_scene%h_vec + j_com * curr_scene%v_vec)
+      ray = normalize(this%camera_vec + i_com * this%h_vec + j_com * this%v_vec)
 
     end function get_ray
 
-    pure function get_ray_color(curr_scene,r) result(color)
+    pure function get_ray_color(this,r) result(color)
       use, intrinsic :: iso_fortran_env, only:uint8
-      real, parameter :: pi = 4.0 * atan(1.0)
-      integer(uint8) :: color(4)
-      type(scene), intent(in) :: curr_scene
+      class(scene), intent(in) :: this
       real, intent(in) :: r(3)
-      real, parameter :: largest = huge(1.0)
+      integer(uint8) :: color(4)
+
       real :: smallest, curr, scratch
+      real, parameter :: pi = 4.0 * atan(1.0), largest = huge(1.0)
       integer :: i
 
       associate(&
-        camera_vec => curr_scene%camera_vec,&
-        camera_pos => curr_scene%camera_pos,&
-        sky_color => curr_scene%sky_color,&
-        planes => curr_scene%planes,&
-        spheres => curr_scene%spheres&
+        camera_vec => this%camera_vec,&
+        camera_pos => this%camera_pos,&
+        sky_color => this%sky_color,&
+        planes => this%planes,&
+        spheres => this%spheres&
       )
         color = sky_color
         smallest = largest
         curr = smallest
 
         do i=1, size(planes)
-          curr = get_plane_intersection(planes(i), r, camera_pos)
+          curr = planes(i)%get_plane_intersection(r, camera_pos)
           if(0.0 < curr .and. curr < smallest) then
             smallest = curr
             color = planes(i)%color
@@ -189,12 +202,12 @@ module raytracer
 
     end function get_sphere_intersection
 
-    pure function get_plane_intersection(curr_plane, r, c) result(t)
-      type(plane), intent(in) :: curr_plane
+    pure function get_plane_intersection(this, r, c) result(t)
+      class(plane), intent(in) :: this
       real, intent(in) :: r(3), c(3)
       real :: t
 
-      t = dot_product(curr_plane%point - c, curr_plane%normal) / dot_product(r, curr_plane%normal)
+      t = dot_product(this%point - c, this%normal) / dot_product(r, this%normal)
     end function get_plane_intersection
 
     pure function compute_cross_product(u, v) result(p)

@@ -13,8 +13,8 @@ module input
     subroutine update_input(window, key, bits, pressed) bind(c)
       use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_bool
       type(c_ptr), value :: window
+      integer(c_int), value :: key, bits
       logical(c_bool), value :: pressed
-      integer(c_int), value :: bits , key
 
       if(key >=0 .and. key <= 512) then
         is_pressed(key) = pressed

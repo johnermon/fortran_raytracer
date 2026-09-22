@@ -4,7 +4,7 @@ program fortran_raytracer
   use c_bindings, only :&
     close_window, open_window, generate_png, update_window, register_io_callback, usleep
   use raytracer, only:&
-  create_scene,create_plane, trace_rays, scene, move_camera, rotate_camera, plane, sphere
+  trace_rays, scene, plane, sphere
   use input
   implicit none(type, external)
 
@@ -13,25 +13,26 @@ program fortran_raytracer
   type(c_ptr) :: window
   window = c_null_ptr
 
-  curr_scene = create_scene(&
+
+  curr_scene = scene(&
     1024,1024,&
     [0.0,0.0,0.0], [1.0,1.0,1.0],&
     [229, 221, 107, 255],&
     [&!planes
-      create_plane(&
+      plane(&
         [0.0,0.0,-20.0],& !point
         [0.2,0.2,1.0],& !normal
 
         [0, 0, 255, 255]& !color
       ),&
 
-      create_plane(&
+      plane(&
         [0.0, 200.0,-20.0],& !point
         [-0.2,-0.2,1.0],& !normal
 
         [0, 255, 0, 255]& !color
       ),&
-      create_plane(&
+      plane(&
         [0.0, 200.0,-20.0],& !point
         [0.5,-0.4,1.0],& !normal
 
@@ -60,8 +61,8 @@ program fortran_raytracer
       exit
     end if
 
-    call move_camera(curr_scene, keyboard_get_dir())
-    call rotate_camera(curr_scene, keyboard_get_rotation())
+    call curr_scene%move_camera(keyboard_get_dir())
+    call curr_scene%rotate_camera(keyboard_get_rotation())
 
     call trace_rays(curr_scene, canvas)
 
