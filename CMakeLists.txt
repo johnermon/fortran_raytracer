@@ -9,6 +9,8 @@ add_executable(fortran_raytracer
   raytracer.f90
   c_bindings.f90
   input.f90
+  scenes.f90
+  engine.f90
   canvas.c
 )
 

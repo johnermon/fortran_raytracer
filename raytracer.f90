@@ -121,7 +121,7 @@ module raytracer
       block
         integer :: i, j
         real :: r(3)
-        !$omp do collapse(2)
+        !$omp do schedule(static) collapse(2)
         do j=1, this%height
           do i = 1, this%width
             r = this%get_ray(i,j)
@@ -182,6 +182,7 @@ module raytracer
             )
 
             if (scratch < 25) then
+              ! color = [255,255,255,255]
               color = [0, 0, 0, 255] + [&
                   floor(sin(10.2 * real(scratch))),&
                   floor(sin(10.2 * (real(scratch)- pi/3))),&
@@ -207,7 +208,7 @@ module raytracer
       type(sphere), intent(in) :: curr_sphere
       real, intent(in) :: r(3), c(3)
       real :: t
-
+      
     end function get_sphere_intersection
 
     pure function get_plane_intersection(this, r, c) result(t)
