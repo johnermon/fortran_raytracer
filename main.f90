@@ -64,7 +64,7 @@ program fortran_raytracer
     call curr_scene%move_camera(keyboard_get_dir())
     call curr_scene%rotate_camera(keyboard_get_rotation())
 
-    call trace_rays(curr_scene, canvas)
+    call curr_scene%trace_rays(canvas)
 
     call update_window(window, canvas)
 

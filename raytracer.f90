@@ -37,6 +37,7 @@ module raytracer
 
 
   contains
+  !override constructor for scene, allows you to not have to worry about boilerplate
     pure function scene_new(&
       width, height, camera_pos, camera_vec, sky_color, planes, spheres&
     ) result(new_scene)
@@ -67,6 +68,7 @@ module raytracer
 
     end function scene_new
 
+    !automatically normalizes whatever normal you pass into the plane
     pure function plane_new(point, normal, color) result(new_plane)
       real, intent(in) :: point(3), normal(3)
       integer, intent(in) :: color(4)
@@ -114,15 +116,21 @@ module raytracer
       use, intrinsic :: iso_fortran_env, only:uint8
       class(scene), intent(in) :: this
       integer(uint8), contiguous, intent(inout) ::  canvas(:,:,:)
-      integer :: i, j
 
-      !$omp parallel do collapse(2) private(i,j)
-      do j=1, this%height
-        do i = 1, this%width
-          canvas(:,i,j) = this%get_ray_color(this%get_ray(i,j))
+      !$omp parallel
+      block
+        integer :: i, j
+        real :: r(3)
+        !$omp do collapse(2)
+        do j=1, this%height
+          do i = 1, this%width
+            r = this%get_ray(i,j)
+            canvas(:,i,j) = this%get_ray_color(r)
+          end do
         end do
-      end do
-      !$omp end parallel do
+        !$omp end do
+      end block
+    !$omp end parallel
 
     end subroutine trace_rays
 
