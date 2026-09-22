@@ -3,11 +3,11 @@ program fortran_raytracer
   use, intrinsic :: iso_fortran_env, only:uint8
   use c_bindings, only :&
     close_window, open_window, generate_png, update_window, register_io_callback, usleep
-  use raytracer, only:create_scene,create_plane,&
-  trace_rays, scene, move_camera, rotate_camera, plane, sphere
+  use raytracer, only:&
+  create_scene,create_plane, trace_rays, scene, move_camera, rotate_camera, plane, sphere
   use input
-
   implicit none(type, external)
+
   integer(uint8), allocatable ::  canvas(:,:,:)
   type(scene) :: curr_scene
   type(c_ptr) :: window
@@ -56,26 +56,25 @@ program fortran_raytracer
   call register_io_callback(window, c_funloc(update_input))
 
   do
-    call trace_rays(curr_scene, canvas)
-    call update_window(window, canvas)
-
     if(is_pressed(esc)) then
       exit
     end if
+
+    call move_camera(curr_scene, keyboard_get_dir())
+    call rotate_camera(curr_scene, keyboard_get_rotation())
+
+    call trace_rays(curr_scene, canvas)
+
+    call update_window(window, canvas)
 
     if(is_pressed(p)) then
       call generate_png("output.png", curr_scene%width,curr_scene%height, canvas)
       call usleep(500000)
     end if
 
-    call move_camera(curr_scene, keyboard_get_dir())
-    call rotate_camera(curr_scene, keyboard_get_rotation())
-
     call usleep(16666)
   end do
 
-
-  deallocate(canvas)
-
   call close_window(window)
+  deallocate(canvas)
 end program fortran_raytracer

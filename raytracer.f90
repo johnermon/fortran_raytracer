@@ -1,7 +1,8 @@
 module raytracer
   use , intrinsic :: iso_c_binding, only:c_int
   use, intrinsic :: iso_fortran_env, only:uint8
-    implicit none(type, external)
+  implicit none(type, external)
+  public
   type :: scene
     integer(c_int) :: width , height
 
@@ -25,7 +26,6 @@ module raytracer
     real:: point(3), normal(3)
     integer(uint8) :: color(4)
   end type plane
-
   contains
     pure function create_scene(width, height, camera_pos, camera_vec, sky_color, planes, spheres) result(new_scene)
       use, intrinsic :: iso_c_binding, only:c_int
@@ -66,23 +66,35 @@ module raytracer
     subroutine move_camera(curr_scene, dir_vec)
       type(scene), intent(inout) :: curr_scene
       real, intent(in) :: dir_vec(3)
-      curr_scene%camera_pos = curr_scene%camera_pos + normalize(curr_scene%camera_vec) * dir_vec(1)
-      curr_scene%camera_pos = curr_scene%camera_pos + curr_scene%h_vec * dir_vec(2)
-      curr_scene%camera_pos = curr_scene%camera_pos + curr_scene%v_vec * dir_vec(3)
+      associate(&
+        camera_vec => curr_scene%camera_vec,&
+        h_vec => curr_scene%h_vec,&
+        v_vec => curr_scene%v_vec,&
+        camera_pos => curr_scene%camera_pos&
+      )
+        camera_pos = camera_pos + normalize(camera_vec) * dir_vec(1)
+        camera_pos = camera_pos + h_vec * dir_vec(2)
+        camera_pos = camera_pos + v_vec * dir_vec(3)
+      end associate
     end subroutine move_camera
 
     subroutine rotate_camera(curr_scene, rotation_vec)
       type(scene), intent(inout) :: curr_scene
       real, intent(in) :: rotation_vec(3)
+      associate(&
+        camera_vec => curr_scene%camera_vec,&
+        h_vec => curr_scene%h_vec,&
+        v_vec => curr_scene%v_vec&
+      )
+        camera_vec = normalize(camera_vec + v_vec * rotation_vec(1))
+        v_vec = normalize(compute_cross_product(camera_vec, h_vec))
 
-        curr_scene%camera_vec = normalize(curr_scene%camera_vec + curr_scene%v_vec * rotation_vec(1))
-        curr_scene%v_vec = normalize(compute_cross_product(curr_scene%camera_vec, curr_scene%h_vec))
+        camera_vec = normalize(camera_vec + h_vec * rotation_vec(2))
+        h_vec = normalize(compute_cross_product(v_vec, camera_vec))
 
-        curr_scene%camera_vec = normalize(curr_scene%camera_vec + curr_scene%h_vec * rotation_vec(2))
-        curr_scene%h_vec = normalize(compute_cross_product(curr_scene%v_vec, curr_scene%camera_vec))
-
-        curr_scene%h_vec = normalize(curr_scene%h_vec+ curr_scene%v_vec * rotation_vec(3))
-        curr_scene%v_vec = normalize(compute_cross_product(curr_scene%camera_vec, curr_scene%h_vec))
+        h_vec = normalize(h_vec+ v_vec * rotation_vec(3))
+        v_vec = normalize(compute_cross_product(camera_vec, h_vec))
+      end associate
     end subroutine rotate_camera
 
     subroutine trace_rays(curr_scene, canvas)
@@ -110,6 +122,7 @@ module raytracer
 
       i_com = (real(2*i) / real(curr_scene%width)) - 1.0
       j_com = (real(2*j) / real(curr_scene%height)) - 1.0
+
       ray = normalize(curr_scene%camera_vec + i_com * curr_scene%h_vec + j_com * curr_scene%v_vec)
 
     end function get_ray
@@ -124,41 +137,49 @@ module raytracer
       real :: smallest, curr, scratch
       integer :: i
 
-      color = curr_scene%sky_color
-      smallest = largest
-      curr = smallest
+      associate(&
+        camera_vec => curr_scene%camera_vec,&
+        camera_pos => curr_scene%camera_pos,&
+        sky_color => curr_scene%sky_color,&
+        planes => curr_scene%planes,&
+        spheres => curr_scene%spheres&
+      )
+        color = sky_color
+        smallest = largest
+        curr = smallest
 
-      do i=1, size(curr_scene%planes)
-        curr = get_plane_intersection(curr_scene%planes(i), r, curr_scene%camera_pos)
-        if(0.0 < curr .and. curr < smallest) then
-          smallest = curr
-          color = curr_scene%planes(i)%color
-          !
-          scratch = mod(&
-            floor(&
-            norm2(&
-            curr * r + curr_scene%camera_pos - curr_scene%planes(i)%point)), 50&
-          )
+        do i=1, size(planes)
+          curr = get_plane_intersection(planes(i), r, camera_pos)
+          if(0.0 < curr .and. curr < smallest) then
+            smallest = curr
+            color = planes(i)%color
+            !
+            scratch = mod(&
+              floor(&
+              norm2(&
+              curr * r + camera_pos - planes(i)%point)), 50&
+            )
 
-          if (scratch < 25) then
-            color = [0, 0, 0, 255] + [&
-                floor(sin(10.2 * real(scratch))),&
-                floor(sin(10.2 * (real(scratch)- pi/3))),&
-                floor(sin(10.2 * (real(scratch) - (2*pi)/3))),&
-                0 &
-              ] * floor(scratch)
+            if (scratch < 25) then
+              color = [0, 0, 0, 255] + [&
+                  floor(sin(10.2 * real(scratch))),&
+                  floor(sin(10.2 * (real(scratch)- pi/3))),&
+                  floor(sin(10.2 * (real(scratch) - (2*pi)/3))),&
+                  0 &
+                ] * floor(scratch)
+            end if
           end if
-        end if
-      end do
+        end do
 
-      ! do i=1, sizeof(curr_scene%spheres)
-      !   curr_sphere = curr_scene%spheres(i)
-      !   curr = get_sphere_intersection(curr_sphere, r, camera_pos)
-      !   if(curr < smallest) then
-      !     smallest = curr
-      !   end if
-      ! end do
-      !
+        ! do i=1, sizeof(spheres)
+        !   curr_sphere = spheres(i)
+        !   curr = get_sphere_intersection(curr_sphere, r, camera_pos)
+        !   if(curr < smallest) then
+        !     smallest = curr
+        !   end if
+        ! end do
+        !
+    end associate
     end function get_ray_color
 
     pure function get_sphere_intersection(curr_sphere, r, c)result(t)

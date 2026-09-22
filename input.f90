@@ -1,6 +1,6 @@
 module input
   implicit none(type, external)
-
+  public
   logical, save :: is_pressed(0:512) = .false.
 
   integer, parameter :: w = 87, a = 65, s = 83, d = 68, space =32, shift = 340
