@@ -3,8 +3,8 @@ program fortran_raytracer
   use, intrinsic :: iso_fortran_env, only:uint8
   use c_bindings, only :&
     close_window, open_window, generate_png, update_window, register_io_callback, usleep
-
-  use raytracer, only:setup_params, trace_rays, scene, move_camera, rotate_camera
+  use raytracer, only:create_scene,create_plane,&
+  trace_rays, scene, move_camera, rotate_camera, plane, sphere
   use input
 
   implicit none(type, external)
@@ -13,7 +13,41 @@ program fortran_raytracer
   type(c_ptr) :: window
   window = c_null_ptr
 
-  curr_scene = setup_params()
+  curr_scene = create_scene(&
+    1024,1024,&
+    [0.0,0.0,0.0], [1.0,1.0,1.0],&
+    [229, 221, 107, 255],&
+    [&!planes
+      create_plane(&
+        [0.0,0.0,-20.0],& !point
+        [0.2,0.2,1.0],& !normal
+
+        [0, 0, 255, 255]& !color
+      ),&
+
+      create_plane(&
+        [0.0, 200.0,-20.0],& !point
+        [-0.2,-0.2,1.0],& !normal
+
+        [0, 255, 0, 255]& !color
+      ),&
+      create_plane(&
+        [0.0, 200.0,-20.0],& !point
+        [0.5,-0.4,1.0],& !normal
+
+        [255, 0, 0, 255]& !color
+      )&
+    ],&
+
+    [& ! spheres
+      sphere(&
+        10,& ! radius
+        [20.0, 0.0, 0.0],&
+
+        [0,0,255, 255]& !color
+      )&
+    ]&
+  )
 
   allocate(canvas(4,curr_scene%width,curr_scene%height))
 

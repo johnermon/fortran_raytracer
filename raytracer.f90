@@ -9,10 +9,11 @@ module raytracer
 
     real :: h_vec(3), v_vec(3)
 
+    integer(uint8) :: sky_color(4)
+
     type(plane) , allocatable :: planes(:)
     type(sphere) , allocatable :: spheres(:)
 
-    integer(uint8) :: sky_color(4)
   end type scene
 
   type :: sphere
@@ -26,52 +27,41 @@ module raytracer
   end type plane
 
   contains
-    function setup_params() result(curr_scene)
-      use, intrinsic :: iso_fortran_env, only:uint8
-      type(scene) :: curr_scene
-      real :: camera_vec(3), camera_pos(3), up_vec(3), h_vec(3), v_vec(3)
-
-      up_vec = [0.0,0.0,1.0]
-      camera_pos = [500.0,50.0, -50.0]
-      camera_vec = [-1.0,1.0,0.0]
+    pure function create_scene(width, height, camera_pos, camera_vec, sky_color, planes, spheres) result(new_scene)
+      use, intrinsic :: iso_c_binding, only:c_int
+      type(scene) :: new_scene
+      integer(c_int), intent(in) :: width, height
+      real, intent(in) :: camera_pos(3), camera_vec(3)
+      real :: h_vec(3), v_vec(3)
+      real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
+      integer, intent(in) :: sky_color(4)
+      type(plane), intent(in) :: planes(:)
+      type(sphere), intent(in) :: spheres(:)
 
       h_vec = normalize(compute_cross_product(camera_vec, up_vec))
       v_vec = normalize(compute_cross_product(camera_vec, h_vec))
 
-      curr_scene = scene(&
-        1024, 1024,& !width, height
+      new_scene = scene(&
+        width,&
+        height,&
         up_vec,&
         camera_pos, camera_vec,&
-        h_vec, v_vec,&
-          [&!planes
-            plane(&
-              [0.0,0.0,-20.0],& !point
-              [0.2,0.2,1.0],& !normal
+        h_vec,&
+        v_vec,&
+        sky_color,&
+        planes,&
+        spheres&
+      )
+    end function create_scene
 
-              [250, 206, 91, 255]& !color
-            ),&
-
-            plane(&
-              [0.0, 200.0,-20.0],& !point
-              [-0.2,-0.2,1.0],& !normal
-
-              [184, 169, 249, 255]& !color
-            )&
-          ],&
-
-          [& ! spheres
-            sphere(&
-              10,& ! radius
-              [20.0, 0.0, 0.0],&
-
-              [0,0,255, 255]& !color
-            )&
-          ],&
-
-          !sky color
-          [229, 221, 107, 255]&
-        )
-    end function setup_params
+    pure function create_plane(point, normal, color) result(new_plane)
+      real, intent(in) :: point(3), normal(3)
+      integer, intent(in) :: color(4)
+      type(plane) :: new_plane
+      new_plane = plane(&
+        point, normalize(normal), color&
+      )
+    end function create_plane
 
     subroutine move_camera(curr_scene, dir_vec)
       type(scene), intent(inout) :: curr_scene
@@ -126,6 +116,7 @@ module raytracer
 
     pure function get_ray_color(curr_scene,r) result(color)
       use, intrinsic :: iso_fortran_env, only:uint8
+      real, parameter :: pi = 4.0 * atan(1.0)
       integer(uint8) :: color(4)
       type(scene), intent(in) :: curr_scene
       real, intent(in) :: r(3)
@@ -150,12 +141,12 @@ module raytracer
           )
 
           if (scratch < 25) then
-            color = [&
-              int(abs(sin(scratch/5)) * 255.0, uint8),&
-              int(abs(cos(scratch/3)) * 255.0, uint8),&
-              int(abs(sin(scratch/2)) * 255.0,uint8),&
-              int(255, uint8)&
-              ]
+            color = [0, 0, 0, 255] + [&
+                floor(sin(10.2 * real(scratch))),&
+                floor(sin(10.2 * (real(scratch)- pi/3))),&
+                floor(sin(10.2 * (real(scratch) - (2*pi)/3))),&
+                0 &
+              ] * floor(scratch)
           end if
         end if
       end do
