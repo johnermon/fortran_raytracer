@@ -84,10 +84,8 @@ module raytracer
       class(scene), intent(inout) :: this
       real, intent(in) :: dir_vec(3)
       associate(&
-        camera_vec => this%camera_vec,&
-        h_vec => this%h_vec,&
-        v_vec => this%v_vec,&
-        camera_pos => this%camera_pos&
+        camera_vec => this%camera_vec, h_vec => this%h_vec,&
+        v_vec => this%v_vec, camera_pos => this%camera_pos&
       )
         camera_pos = camera_pos + normalize(camera_vec) * dir_vec(1)
         camera_pos = camera_pos + h_vec * dir_vec(2)
@@ -98,11 +96,7 @@ module raytracer
     subroutine rotate_camera(this, rotation_vec)
       class(scene), intent(inout) :: this
       real, intent(in) :: rotation_vec(3)
-      associate(&
-        camera_vec => this%camera_vec,&
-        h_vec => this%h_vec,&
-        v_vec => this%v_vec&
-      )
+      associate(camera_vec => this%camera_vec, h_vec => this%h_vec,v_vec => this%v_vec)
         camera_vec = normalize(camera_vec + v_vec * rotation_vec(1))
         v_vec = normalize(compute_cross_product(camera_vec, h_vec))
 
@@ -210,10 +204,7 @@ module raytracer
       class(sphere), intent(in) :: this
       real, intent(in) :: r(3), cam(3)
       real :: t, a, b, c
-      associate(&
-        radius => this%radius,&
-        point => this%point&
-      )
+      associate(radius => this%radius, point => this%point)
         a = dot_product(r,r)
         b = 2 * (dot_product(r, cam) - dot_product(r,point))
         c = dot_product(cam, cam) + (dot_product(point, point)) - (2 * dot_product(cam, point)) - (radius ** 2)
@@ -225,7 +216,6 @@ module raytracer
       class(plane), intent(in) :: this
       real, intent(in) :: r(3), c(3)
       real :: t
-
       t = dot_product(this%point - c, this%normal) / dot_product(r, this%normal)
     end function get_plane_intersection
 
@@ -241,6 +231,6 @@ module raytracer
     pure function normalize(v) result(p)
       real, intent(in) :: v(3)
       real :: p(3)
-      p = v / norm2(v)
+    p = v / sqrt(dot_product(v, v))
     end function normalize
 end module raytracer

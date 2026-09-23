@@ -6,12 +6,25 @@ module engine
   use scenes
 
   implicit none(type, external)
+  type accumulator
+    integer :: rate, rem_time, i, frames_accumulated
+    real :: frame_delta
+    integer:: count, count_prev
+    contains
+      procedure :: update => update_accumulator, wait => accumulator_wait
+  end type accumulator
+
   integer(uint8), allocatable, target::  canvas(:,:,:)
   type(scene) :: curr_scene
   type(c_ptr) :: window
+  type(accumulator) :: acc
+
   integer , parameter :: framerate = 60
+  integer , parameter :: width = 1024, height = 1024
 
   private
+
+
   public :: run_once, setup, close_engine
   contains
 
@@ -28,36 +41,27 @@ module engine
   end subroutine setup
 
   function run_once() result(quit)
-    use, intrinsic:: iso_c_binding, only:c_int32_t
     use c_bindings, only:usleep
-    integer, save :: count_prev = 0
-
     logical :: quit
-    integer :: count, rate
-    real, parameter :: framerate_usec = 1000000.0 / real(framerate)
-    real :: frame_delta
+    integer :: i
     quit = .false.
-
-    call system_clock(count, rate)
-    frame_delta = (real(count) - real(count_prev)) / real(rate) * real(framerate)
-    count_prev = count
 
     if(is_pressed(esc)) then
       quit = .true.
       return
     end if
 
-    do
-      if(frame_delta < 1.0) exit
 
-      call curr_scene%move_camera(keyboard_get_dir())
-      call curr_scene%rotate_camera(keyboard_get_rotation())
-      frame_delta = frame_delta - 1.0
+    call acc%update()
+
+    do i = 1, acc%frames_accumulated
+      call update_state()
     end do
 
-    call usleep(int(framerate_usec * frame_delta,kind=c_int32_t))
+    call acc%wait()
 
     call curr_scene%trace_rays(canvas)
+
 
     call update_window()
 
@@ -66,6 +70,11 @@ module engine
       call usleep(500000)
     end if
   end function run_once
+
+  subroutine update_state()
+    call curr_scene%move_camera(keyboard_get_dir())
+    call curr_scene%rotate_camera(keyboard_get_rotation())
+  end subroutine update_state
 
   subroutine open_window(name, width, height)
     use , intrinsic ::iso_c_binding, only:&
@@ -140,5 +149,30 @@ module engine
 
     deallocate(tmp_canvas)
   end subroutine generate_png
+
+  subroutine update_accumulator(this)
+      use, intrinsic:: iso_c_binding, only:c_int32_t
+      class(accumulator), intent(inout) :: this
+      real :: frame_delta
+      associate(&
+        count => this%count,&
+        rate => this%rate,&
+        rem_time => this%rem_time,&
+        frames_accumulated => this%frames_accumulated,&
+        count_prev => this%count_prev&
+      )
+        call system_clock(count, rate)
+        frame_delta = (real(count) - real(count_prev)) / real(rate) * real(framerate)
+        frames_accumulated = floor(frame_delta)
+        rem_time = int(( 1000000.0 / real(framerate))* ( frame_delta - real(frames_accumulated)), kind=c_int32_t)
+        count_prev = count
+    end associate
+  end subroutine update_accumulator
+
+  subroutine accumulator_wait(this)
+    use c_bindings, only:usleep
+    class(accumulator), intent(inout) :: this
+    call usleep(this%rem_time)
+  end subroutine accumulator_wait
 
 end module engine
