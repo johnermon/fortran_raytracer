@@ -14,7 +14,11 @@ module raytracer
     type(plane) , allocatable :: planes(:)
     type(sphere) , allocatable :: spheres(:)
     contains
-      procedure :: move_camera, rotate_camera, trace_rays, get_ray_color, get_ray
+      procedure :: &
+        move_camera, rotate_camera,&
+        trace_rays, get_ray_color, get_ray,&
+        set_resolution => scene_set_resolution
+
   end type scene
   interface scene
     module procedure :: scene_new
@@ -40,11 +44,8 @@ module raytracer
 
   contains
   !override constructor for scene, allows you to not have to worry about boilerplate
-    pure function scene_new(&
-      width, height, camera_pos, camera_vec, sky_color, planes, spheres&
-    ) result(new_scene)
+    pure function scene_new(camera_pos, camera_vec, sky_color, planes, spheres) result(new_scene)
       use, intrinsic :: iso_c_binding, only:c_int
-      integer(c_int), intent(in) :: width, height
       real, intent(in) :: camera_pos(3), camera_vec(3)
       integer, intent(in) :: sky_color(4)
       type(plane), intent(in) :: planes(:)
@@ -57,8 +58,8 @@ module raytracer
       h_vec = normalize(compute_cross_product(camera_vec, up_vec))
       v_vec = normalize(compute_cross_product(camera_vec, h_vec))
 
-      new_scene%width = width
-      new_scene%height = height
+      new_scene%width = 0
+      new_scene%height = 0
       new_scene%up_vec = up_vec
       new_scene%camera_pos = camera_pos
       new_scene%camera_vec = camera_vec
@@ -69,6 +70,14 @@ module raytracer
       new_scene%spheres = spheres
 
     end function scene_new
+
+    subroutine scene_set_resolution(this, width, height)
+      use, intrinsic :: iso_c_binding, only:c_int
+      class(scene), intent(inout) :: this
+      integer(c_int), value :: width, height
+      this%width = width
+      this%height = height
+    end subroutine scene_set_resolution
 
     !automatically normalizes whatever normal you pass into the plane
     pure function plane_new(point, normal, color) result(new_plane)

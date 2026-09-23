@@ -5,8 +5,7 @@ module scenes
   contains
   pure function rgb_test() result(ret)
     type(scene) :: ret
-      ret= scene(&
-        1024,1024,&
+      ret = scene(&
         [0.0,0.0,0.0], [1.0,1.0,1.0],&
         [229, 221, 107, 255],&
         [&!planes
@@ -37,7 +36,7 @@ module scenes
             10,& ! radius
             [0.0, 0.0, 0.0],&
 
-            [0,255, 0, 255]& !color
+            [122,122, 255, 255]& !color
           )&
         ]&
       )

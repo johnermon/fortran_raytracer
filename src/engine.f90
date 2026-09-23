@@ -4,8 +4,8 @@ module engine
   use raytracer, only:scene
   use input
   use scenes
-
   implicit none(type, external)
+
   type accumulator
     integer :: rate, rem_time, i, frames_accumulated
     real :: frame_delta
@@ -32,8 +32,8 @@ module engine
     use , intrinsic :: iso_c_binding, only:c_null_ptr, c_funloc
     use c_bindings, only:mfb_set_keyboard_callback
     window = c_null_ptr
-
     curr_scene = rgb_test()
+    call curr_scene%set_resolution(width, height)
 
     allocate(canvas(4,curr_scene%width,curr_scene%height))
     call open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
@@ -65,13 +65,11 @@ module engine
 
     call update_window()
 
-    if(is_pressed(p)) then
-      call generate_png("output.png", curr_scene%width,curr_scene%height)
-      call usleep(500000)
-    end if
+    call handle_screenshot("output.png", width,height)
   end function run_once
 
   subroutine update_state()
+    use input, only: keyboard_get_rotation,keyboard_get_dir
     call curr_scene%move_camera(keyboard_get_dir())
     call curr_scene%rotate_camera(keyboard_get_rotation())
   end subroutine update_state
@@ -122,17 +120,20 @@ module engine
     deallocate(canvas)
   end subroutine close_engine
 
-  subroutine generate_png(name, width, height)
+  subroutine handle_screenshot(name, width, height)
     use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char
     use, intrinsic :: iso_fortran_env, only:uint8
     use c_bindings, only:c_write_png
+    use input, only:p, was_just_pressed
 
     character(len=*), intent(in) :: name
     integer(c_int), intent(in), value :: width, height
 
-    character(kind=c_char, len=:), allocatable :: c_name
-    integer(uint8), allocatable, target ::  tmp_canvas(:,:,:)
+    character(kind=c_char, len=:), allocatable, save:: c_name
+    integer(uint8), allocatable, target, save::  tmp_canvas(:,:,:)
     type(c_ptr) ::  pixels
+
+    if(.not.was_just_pressed(p)) return
 
     c_name = name // c_null_char
 
@@ -148,7 +149,7 @@ module engine
     end if
 
     deallocate(tmp_canvas)
-  end subroutine generate_png
+  end subroutine handle_screenshot
 
   subroutine update_accumulator(this)
       use, intrinsic:: iso_c_binding, only:c_int32_t

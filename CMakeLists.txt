@@ -4,15 +4,8 @@ project(fortran_raytracer CXX C Fortran)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(fortran_raytracer
-  main.f90
-  raytracer.f90
-  c_bindings.f90
-  input.f90
-  scenes.f90
-  engine.f90
-  canvas.c
-)
+add_subdirectory(src)
+
 
 include(FetchContent)
 
