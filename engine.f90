@@ -20,8 +20,8 @@ module engine
     use c_bindings, only:mfb_set_keyboard_callback
     window = c_null_ptr
 
-
     curr_scene = rgb_test()
+
     allocate(canvas(4,curr_scene%width,curr_scene%height))
     call open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
     call mfb_set_keyboard_callback(window, c_funloc(update_input))
@@ -37,6 +37,7 @@ module engine
     real, parameter :: framerate_usec = 1000000.0 / real(framerate)
     real :: frame_delta
     quit = .false.
+
     call system_clock(count, rate)
     frame_delta = (real(count) - real(count_prev)) / real(rate) * real(framerate)
     count_prev = count

@@ -33,6 +33,8 @@ module raytracer
   type :: sphere
     real :: radius, point(3)
     integer(uint8) :: color(4)
+    contains
+      procedure :: get_sphere_intersection
   end type sphere
 
 
@@ -193,22 +195,30 @@ module raytracer
           end if
         end do
 
-        ! do i=1, sizeof(spheres)
-        !   curr_sphere = spheres(i)
-        !   curr = get_sphere_intersection(curr_sphere, r, camera_pos)
-        !   if(curr < smallest) then
-        !     smallest = curr
-        !   end if
-        ! end do
-        !
+        do i=1, size(spheres)
+          curr = spheres(i)%get_sphere_intersection(r, camera_pos)
+          if(0.0 < curr .and. curr < smallest) then
+            smallest = curr
+            color = spheres(i)%color
+          end if
+        end do
+
     end associate
     end function get_ray_color
 
-    pure function get_sphere_intersection(curr_sphere, r, c)result(t)
-      type(sphere), intent(in) :: curr_sphere
-      real, intent(in) :: r(3), c(3)
-      real :: t
-      
+    pure function get_sphere_intersection(this, r, cam)result(t)
+      class(sphere), intent(in) :: this
+      real, intent(in) :: r(3), cam(3)
+      real :: t, a, b, c
+      associate(&
+        radius => this%radius,&
+        point => this%point&
+      )
+        a = dot_product(r,r)
+        b = 2 * (dot_product(r, cam) - dot_product(r,point))
+        c = dot_product(cam, cam) + (dot_product(point, point)) - (2 * dot_product(cam, point)) - (radius ** 2)
+        t = ((-1*b) + sqrt((b ** 2) - (4 * a * c))) / (2 * a)
+      end associate
     end function get_sphere_intersection
 
     pure function get_plane_intersection(this, r, c) result(t)
