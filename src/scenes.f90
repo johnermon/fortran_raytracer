@@ -1,5 +1,8 @@
 module scenes
-  use raytracer, only:scene, plane, sphere
+  use raytracer, only:scene
+  use primatives, only:plane, sphere
+  use shaders
+
   implicit none(type, external)
   public
   contains
@@ -13,21 +16,24 @@ module scenes
             [0.0,0.0,-20.0],& !point
             [0.2,0.2,1.0],& !normal
 
-            [0, 0, 255, 255]& !color
+            [0, 0, 255, 255],& !color
+            rainbow&
           ),&
 
            plane(&
              [0.0, 200.0,-20.0],& !point
              [-0.2,-0.2,1.0],& !normal
 
-             [0, 255, 0, 255]& !color
+             [0, 255, 0, 255], & !color
+              0&
            ),&
 
            plane(&
              [0.0, 200.0,-20.0],& !point
              [0.5,-0.4,1.0],& !normal
 
-             [255, 0, 0, 255]& !color
+             [255, 0, 0, 255],& !color
+              0&
            )&
         ],&
 

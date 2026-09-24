@@ -8,4 +8,7 @@ add_executable(fortran_raytracer
   input.f90
   scenes.f90
   engine.f90
+  primatives.f90
+  shaders.f90
+  library.f90
 )

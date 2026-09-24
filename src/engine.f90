@@ -65,7 +65,7 @@ module engine
 
     call update_window()
 
-    call handle_screenshot("output.png", width,height)
+    if(was_just_pressed(p)) call handle_screenshot("output.png", width,height)
   end function run_once
 
   subroutine update_state()
@@ -124,7 +124,6 @@ module engine
     use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char
     use, intrinsic :: iso_fortran_env, only:uint8
     use c_bindings, only:c_write_png
-    use input, only:p, was_just_pressed
 
     character(len=*), intent(in) :: name
     integer(c_int), intent(in), value :: width, height
@@ -132,8 +131,6 @@ module engine
     character(kind=c_char, len=:), allocatable, save:: c_name
     integer(uint8), allocatable, target, save::  tmp_canvas(:,:,:)
     type(c_ptr) ::  pixels
-
-    if(.not.was_just_pressed(p)) return
 
     c_name = name // c_null_char
 
@@ -165,7 +162,10 @@ module engine
         call system_clock(count, rate)
         frame_delta = (real(count) - real(count_prev)) / real(rate) * real(framerate)
         frames_accumulated = floor(frame_delta)
-        rem_time = int(( 1000000.0 / real(framerate))* ( frame_delta - real(frames_accumulated)), kind=c_int32_t)
+        rem_time = int(&
+          ( 1000000.0 / real(framerate)) * ( frame_delta - real(frames_accumulated)),&
+          kind=c_int32_t&
+        )
         count_prev = count
     end associate
   end subroutine update_accumulator

@@ -1,6 +1,9 @@
 module raytracer
   use , intrinsic :: iso_c_binding, only:c_int
   use, intrinsic :: iso_fortran_env, only:uint8
+  use library, only:compute_cross_product, normalize
+  use primatives, only:sphere, plane
+  use shaders, only:apply_shader
   implicit none(type, external)
   private
   public :: trace_rays, scene, plane, sphere
@@ -23,24 +26,6 @@ module raytracer
   interface scene
     module procedure :: scene_new
   end interface scene
-
-  type :: plane
-    real:: point(3), normal(3)
-    integer(uint8) :: color(4)
-    contains
-      procedure :: get_plane_intersection
-  end type plane
-  interface plane
-    module procedure :: plane_new
-  end interface plane
-
-  type :: sphere
-    real :: radius, point(3)
-    integer(uint8) :: color(4)
-    contains
-      procedure :: get_sphere_intersection
-  end type sphere
-
 
   contains
   !override constructor for scene, allows you to not have to worry about boilerplate
@@ -78,16 +63,6 @@ module raytracer
       this%width = width
       this%height = height
     end subroutine scene_set_resolution
-
-    !automatically normalizes whatever normal you pass into the plane
-    pure function plane_new(point, normal, color) result(new_plane)
-      real, intent(in) :: point(3), normal(3)
-      integer, intent(in) :: color(4)
-      type(plane) :: new_plane
-      new_plane%point = point
-      new_plane%normal = normalize(normal)
-      new_plane%color = color
-    end function plane_new
 
     subroutine move_camera(this, dir_vec)
       class(scene), intent(inout) :: this
@@ -158,9 +133,8 @@ module raytracer
       class(scene), intent(in) :: this
       real, intent(in) :: r(3)
       integer(uint8) :: color(4)
-
-      real :: smallest, curr, scratch
-      real, parameter :: pi = 4.0 * atan(1.0), largest = huge(1.0)
+      real :: smallest, curr
+      real, parameter :: largest = huge(1.0)
       integer :: i
 
       associate(&
@@ -170,31 +144,19 @@ module raytracer
         planes => this%planes,&
         spheres => this%spheres&
       )
+
         color = sky_color
-        smallest = largest
         curr = smallest
+        smallest = largest
 
         do i=1, size(planes)
           curr = planes(i)%get_plane_intersection(r, camera_pos)
           if(0.0 < curr .and. curr < smallest) then
-            smallest = curr
             color = planes(i)%color
-            !
-            scratch = mod(&
-              floor(&
-              norm2(&
-              curr * r + camera_pos - planes(i)%point)), 50&
+            smallest = curr
+            color = apply_shader(&
+              planes(i)%shader,planes(i)%color,planes(i)%point,curr * r + camera_pos&
             )
-
-            if (scratch < 25) then
-              ! color = [255,255,255,255]
-              color = [0, 0, 0, 255] + [&
-                  floor(sin(10.2 * real(scratch))),&
-                  floor(sin(10.2 * (real(scratch)- pi/3))),&
-                  floor(sin(10.2 * (real(scratch) - (2*pi)/3))),&
-                  0 &
-                ] * floor(scratch)
-            end if
           end if
         end do
 
@@ -208,38 +170,4 @@ module raytracer
 
     end associate
     end function get_ray_color
-
-    pure function get_sphere_intersection(this, r, cam)result(t)
-      class(sphere), intent(in) :: this
-      real, intent(in) :: r(3), cam(3)
-      real :: t, a, b, c
-      associate(radius => this%radius, point => this%point)
-        a = dot_product(r,r)
-        b = 2 * (dot_product(r, cam) - dot_product(r,point))
-        c = dot_product(cam, cam) + (dot_product(point, point)) - (2 * dot_product(cam, point)) - (radius ** 2)
-        t = ((-1*b) + sqrt((b ** 2) - (4 * a * c))) / (2 * a)
-      end associate
-    end function get_sphere_intersection
-
-    pure function get_plane_intersection(this, r, c) result(t)
-      class(plane), intent(in) :: this
-      real, intent(in) :: r(3), c(3)
-      real :: t
-      t = dot_product(this%point - c, this%normal) / dot_product(r, this%normal)
-    end function get_plane_intersection
-
-    pure function compute_cross_product(u, v) result(p)
-      real, intent(in) :: u(3), v(3)
-      real :: p(3)
-
-      p(1) = u(2) * v(3) - u(3) * v(2)
-      p(2) = u(3) * v(1) - u(1) * v(3)
-      p(3) = u(1) * v(2) - u(2) * v(1)
-    end function compute_cross_product
-
-    pure function normalize(v) result(p)
-      real, intent(in) :: v(3)
-      real :: p(3)
-    p = v / sqrt(dot_product(v, v))
-    end function normalize
 end module raytracer
