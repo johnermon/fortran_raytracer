@@ -2,7 +2,8 @@ module shaders
   use library, only:compute_cross_product, normalize
   implicit none(type, external)
   public
-  integer, parameter :: rainbow = 1, checkerboard = 2, mandlebrot = 3, burningship = 4
+  integer, parameter :: rainbow = 1, checkerboard = 2, mandlebrot = 3, burningship = 4,&
+                        powertower = 5
 
   contains
     !this funcion is static dispatch for shaders. i tried function pointers for runtime
@@ -23,6 +24,8 @@ module shaders
           color = mandlebrot_shader(colorin, origin, point)
         case (burningship)
           color = burningship_shader(colorin, origin, point)
+        case (powertower)
+          color = powertower_shader(colorin, origin, point)
         case default
           color =  blank
       end select
@@ -71,7 +74,6 @@ module shaders
       integer, parameter :: iterations = 35
       integer :: i
       complex :: z
-      color = [0,0,0,0]
       z = cmplx(0, 0)
       do i=1, iterations
         z = z ** 2 + cmplx(point(1)/200, point(2)/200)
@@ -107,4 +109,26 @@ module shaders
         color = [0,0,0,255]
       end do
     end function burningship_shader
+
+    pure function powertower_shader(colorin, origin, point) result(color)
+      use, intrinsic :: iso_fortran_env, only:uint8
+      real, intent(in) :: origin(3), point(3)
+      integer(uint8), intent(in) :: colorin(4)
+      integer(uint8) :: color(4)
+      integer, parameter :: iterations = 10
+      integer :: i
+      complex :: z, num
+      z = cmplx(point(1)/200, point(2)/200)
+      do i=1, iterations
+        z = z ** cmplx(point(1)/200, point(2)/200)
+      if(2.35363 < real(z) ** 2 + aimag(z) ** 2) then
+        color(1) = int(255.0/iterations * i)
+        color(2) = int(128.0/iterations * i)
+        color(3) = 0
+        color(4) = 255
+        return
+      end if
+        color = [0,0,0,255]
+      end do
+    end function powertower_shader
 end module shaders

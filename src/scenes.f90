@@ -17,7 +17,7 @@ module scenes
             [0.2,0.2,1.0],& !normal
 
             [0, 0, 255, 255],& !color
-            rainbow&
+            burningship&
           ),&
 
            plane(&
@@ -41,7 +41,7 @@ module scenes
              [-0.5,0.4,-1.0],& !normal
 
              [0,0, 255, 255],& !color
-              burningship&
+              powertower&
            )&
         ],&
 
