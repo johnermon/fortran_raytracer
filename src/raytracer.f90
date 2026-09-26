@@ -10,7 +10,7 @@ module raytracer
 
   type :: scene
     integer(c_int) :: width , height
-    real :: up_vec(3), camera_pos(3), camera_vec(3)
+    real :: camera_pos(3), camera_vec(3)
     real :: h_vec(3), v_vec(3)
     integer(uint8) :: sky_color(4)
 
@@ -31,25 +31,19 @@ module raytracer
   !override constructor for scene, allows you to not have to worry about boilerplate
     pure function scene_new(camera_pos, camera_vec, sky_color, planes, spheres) result(new_scene)
       use, intrinsic :: iso_c_binding, only:c_int
+      use library, only:up_vec
       real, intent(in) :: camera_pos(3), camera_vec(3)
       integer, intent(in) :: sky_color(4)
       type(plane), intent(in) :: planes(:)
       type(sphere), intent(in) :: spheres(:)
       type(scene) :: new_scene
 
-      real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
-      real :: h_vec(3), v_vec(3)
-
-      h_vec = normalize(compute_cross_product(camera_vec, up_vec))
-      v_vec = normalize(compute_cross_product(camera_vec, h_vec))
-
+      new_scene%h_vec = normalize(compute_cross_product(camera_vec, up_vec))
+      new_scene%v_vec = normalize(compute_cross_product(camera_vec, new_scene%h_vec))
       new_scene%width = 0
       new_scene%height = 0
-      new_scene%up_vec = up_vec
       new_scene%camera_pos = camera_pos
       new_scene%camera_vec = camera_vec
-      new_scene%h_vec = h_vec
-      new_scene%v_vec = v_vec
       new_scene%sky_color = sky_color
       new_scene%planes = planes
       new_scene%spheres = spheres
@@ -131,12 +125,13 @@ module raytracer
 
     pure function get_ray_color(this,r) result(color)
       use, intrinsic :: iso_fortran_env, only:uint8
+      use library, only: up_vec
       class(scene), intent(in) :: this
       real, intent(in) :: r(3)
-      integer(uint8) :: color(4), curr_color(4)
+      integer(uint8) :: color(4)
       real, parameter :: largest = huge(1.0)
       integer :: i, curr_shader
-      real :: smallest, curr, curr_point(3)
+      real :: smallest, curr, curr_point(3), curr_h_vec(3), curr_v_vec(3)
 
       associate(&
         camera_vec => this%camera_vec,&
@@ -155,9 +150,11 @@ module raytracer
           curr = planes(i)%get_plane_intersection(r, camera_pos)
           if(0.0 < curr .and. curr < smallest) then
             smallest = curr
-            curr_color = planes(i)%color
+            color = planes(i)%color
             curr_shader = planes(i)%shader
             curr_point = planes(i)%point
+            curr_h_vec = planes(i)%h_vec
+            curr_v_vec = planes(i)%v_vec
           end if
         end do
 
@@ -165,15 +162,17 @@ module raytracer
           curr = spheres(i)%get_sphere_intersection(r, camera_pos)
           if(0.0 < curr .and. curr < smallest) then
             smallest = curr
-            curr_color = spheres(i)%color
+            color = spheres(i)%color
             curr_shader = spheres(i)%shader
             curr_point = spheres(i)%point
+            curr_v_vec = up_vec
+            curr_h_vec = curr * r + camera_pos
           end if
         end do
 
         if (.not.curr_shader == 0) then
           color = apply_shader(&
-            curr_shader, curr_color, curr_point, smallest * r + camera_pos&
+            curr_shader, color, curr_point, smallest * r + camera_pos, curr_h_vec, curr_v_vec&
           )
         end if
 

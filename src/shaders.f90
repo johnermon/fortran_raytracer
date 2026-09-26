@@ -8,9 +8,9 @@ module shaders
   contains
     !this funcion is static dispatch for shaders. i tried function pointers for runtime
     !polymorphism it really messed up performance, this seems like a pretty good compromise
-    pure function apply_shader(shader, colorin, origin, point) result(color)
+    pure function apply_shader(shader, colorin, origin, point, h_vec, v_vec) result(color)
       use, intrinsic :: iso_fortran_env, only:uint8
-      real, intent(in) :: origin(3), point(3)
+      real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
       integer, intent(in) :: shader
       integer(uint8), intent(in) :: colorin(4)
       integer(uint8) :: color(4)
@@ -21,11 +21,11 @@ module shaders
         case (checkerboard)
           color = checkerboard_shader(colorin, origin, point)
         case (mandlebrot)
-          color = mandlebrot_shader(colorin, origin, point)
+          color = mandlebrot_shader(colorin, origin, point, h_vec, v_vec)
         case (burningship)
-          color = burningship_shader(colorin, origin, point)
+          color = burningship_shader(colorin, origin, point, h_vec, v_vec)
         case (powertower)
-          color = powertower_shader(colorin, origin, point)
+          color = powertower_shader(colorin, origin, point, h_vec, v_vec)
         case default
           color =  blank
       end select
@@ -54,8 +54,8 @@ module shaders
       real :: x1, y1
       integer :: i
       color = colorin
-      x1 = abs(point(1) / 1000)
-      y1 = abs(point(2) / 1000)
+      x1 = abs((point(1) - origin(1)) / 1000)
+      y1 = abs((point(2) - origin(2)) / 1000)
       do i=1, 6
         x1 = mod(3 * x1, 3.0)
         y1 = mod(3 * y1, 3.0)
@@ -66,9 +66,9 @@ module shaders
       end do
     end function checkerboard_shader
 
-    pure function mandlebrot_shader(colorin, origin, point) result(color)
+    pure function mandlebrot_shader(colorin, origin, point, h_vec, v_vec) result(color)
       use, intrinsic :: iso_fortran_env, only:uint8
-      real, intent(in) :: origin(3), point(3)
+      real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
       integer(uint8), intent(in) :: colorin(4)
       integer(uint8) :: color(4)
       integer, parameter :: iterations = 35
@@ -76,7 +76,7 @@ module shaders
       complex :: z
       z = cmplx(0, 0)
       do i=1, iterations
-        z = z ** 2 + cmplx(point(1)/200, point(2)/200)
+        z = z ** 2 + cmplx((dot_product(point, h_vec)) / 200, dot_product(point,v_vec) / 200)
       if(4 < real(z) ** 2 + aimag(z) ** 2) then
         color(1) = int(122.0/iterations * i)
         color(2) = int(255.0/iterations * i)
@@ -88,9 +88,9 @@ module shaders
       end do
     end function mandlebrot_shader
 
-    pure function burningship_shader(colorin, origin, point) result(color)
+    pure function burningship_shader(colorin, origin, point, h_vec, v_vec) result(color)
       use, intrinsic :: iso_fortran_env, only:uint8
-      real, intent(in) :: origin(3), point(3)
+      real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
       integer(uint8), intent(in) :: colorin(4)
       integer(uint8) :: color(4)
       integer, parameter :: iterations = 35
@@ -98,7 +98,8 @@ module shaders
       complex :: z
       z = cmplx(0, 0)
       do i=1, iterations
-        z = cmplx(abs(real(z)), abs(aimag(z))) ** 2 + cmplx(point(1)/200, point(2)/200)
+        z = cmplx(abs(real(z)), abs(aimag(z))) ** 2 +&
+        cmplx((dot_product(point, h_vec)) / 200, dot_product(point,v_vec) / 200)
       if(4 < real(z) ** 2 + aimag(z) ** 2) then
         color(1) = 0
         color(2) = int(128.0/iterations * i)
@@ -110,17 +111,18 @@ module shaders
       end do
     end function burningship_shader
 
-    pure function powertower_shader(colorin, origin, point) result(color)
+    pure function powertower_shader(colorin, origin, point, h_vec, v_vec) result(color)
       use, intrinsic :: iso_fortran_env, only:uint8
-      real, intent(in) :: origin(3), point(3)
+      real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
       integer(uint8), intent(in) :: colorin(4)
       integer(uint8) :: color(4)
-      integer, parameter :: iterations = 10
+      integer, parameter :: iterations = 8
       integer :: i
       complex :: z, num
-      z = cmplx(point(1)/200, point(2)/200)
+      num = cmplx((dot_product(point, h_vec)) / 200, dot_product(point,v_vec) / 200)
+      z = num
       do i=1, iterations
-        z = z ** cmplx(point(1)/200, point(2)/200)
+        z = z ** num
       if(2.35363 < real(z) ** 2 + aimag(z) ** 2) then
         color(1) = int(255.0/iterations * i)
         color(2) = int(128.0/iterations * i)

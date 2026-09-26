@@ -1,5 +1,6 @@
 module library
   implicit none(type, external)
+  real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
   public
   contains
     pure function compute_cross_product(u, v) result(p)
