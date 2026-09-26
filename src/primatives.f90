@@ -5,7 +5,7 @@ module primatives
   public
   type :: plane
     real:: point(3), normal(3), h_vec(3), v_vec(3)
-    integer(uint8) :: color(4)
+    unsigned(uint8) :: color(4)
     integer :: shader
     contains
       procedure :: get_plane_intersection
@@ -15,7 +15,7 @@ module primatives
   ! end interface plane
 type :: sphere
     real :: radius, point(3), h_vec(3), v_vec(3)
-    integer(uint8) :: color(4)
+    unsigned(uint8) :: color(4)
     integer :: shader
     contains
       procedure :: get_sphere_intersection
@@ -27,14 +27,14 @@ type :: sphere
       use library, only:up_vec
       real, intent(in) :: point(3), normal(3)
       integer, intent(in) :: shade
-      integer, intent(in) :: color(4)
+      unsigned(uint8), intent(in) :: color(4)
 
       type(plane) :: new_plane
       new_plane%h_vec = normalize(compute_cross_product(normal, up_vec))
       new_plane%v_vec = normalize(compute_cross_product(normal, new_plane%h_vec))
       new_plane%point = point
       new_plane%normal = normalize(normal)
-      new_plane%color = int([color(1), color(2), color(3), color(4)], kind = uint8)
+      new_plane%color = color
       new_plane%shader = shade
     end function plane_new
 
@@ -42,14 +42,14 @@ type :: sphere
       use library, only:up_vec
       real, intent(in) :: point(3), radius
       integer, intent(in) :: shade
-      integer, intent(in) :: color(4)
+      unsigned(uint8), intent(in) :: color(4)
       type(sphere) :: new_sphere
 
       new_sphere%h_vec = normalize(compute_cross_product(point, up_vec))
       new_sphere%v_vec = normalize(compute_cross_product(point, new_sphere%h_vec))
       new_sphere%point = point
       new_sphere%radius = radius
-      new_sphere%color = int([color(1), color(2), color(3), color(4)], kind = uint8)
+      new_sphere%color = color
       new_sphere%shader = shade
     end function sphere_new
 

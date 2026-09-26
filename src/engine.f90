@@ -14,7 +14,7 @@ module engine
       procedure :: update => update_accumulator, wait => accumulator_wait
   end type accumulator
 
-  integer(uint8), allocatable, target::  canvas(:,:,:)
+  unsigned(uint8), allocatable, target::  canvas(:,:,:)
   type(scene) :: curr_scene
   type(c_ptr) :: window
   type(accumulator) :: acc
@@ -132,7 +132,7 @@ module engine
     integer(c_int), intent(in), value :: width, height
 
     character(kind=c_char, len=:), allocatable, save:: c_name
-    integer(uint8), allocatable, target, save::  tmp_canvas(:,:,:)
+    unsigned(uint8), allocatable, target, save::  tmp_canvas(:,:,:)
     type(c_ptr) ::  pixels
 
     c_name = name // c_null_char

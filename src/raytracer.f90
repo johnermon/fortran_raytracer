@@ -6,13 +6,13 @@ module raytracer
   use shaders, only:apply_shader
   implicit none(type, external)
   private
-  public :: trace_rays, scene, plane, sphere
+  public :: trace_rays, scene_new, scene, plane, sphere
 
   type :: scene
     integer(c_int) :: width , height
     real :: camera_pos(3), camera_vec(3)
     real :: h_vec(3), v_vec(3)
-    integer(uint8) :: sky_color(4)
+    unsigned(uint8) :: sky_color(4)
 
     type(plane) , allocatable :: planes(:)
     type(sphere) , allocatable :: spheres(:)
@@ -33,7 +33,7 @@ module raytracer
       use, intrinsic :: iso_c_binding, only:c_int
       use library, only:up_vec
       real, intent(in) :: camera_pos(3), camera_vec(3)
-      integer, intent(in) :: sky_color(4)
+      unsigned(uint8), intent(in) :: sky_color(4)
       type(plane), intent(in) :: planes(:)
       type(sphere), intent(in) :: spheres(:)
       type(scene) :: new_scene
@@ -90,7 +90,7 @@ module raytracer
     subroutine trace_rays(this, canvas)
       use, intrinsic :: iso_fortran_env, only:uint8
       class(scene), intent(in) :: this
-      integer(uint8), contiguous, intent(inout) ::  canvas(:,:,:)
+      unsigned(uint8), contiguous, intent(inout) ::  canvas(:,:,:)
 
       !$omp parallel
       block
@@ -128,7 +128,7 @@ module raytracer
       use library, only: up_vec
       class(scene), intent(in) :: this
       real, intent(in) :: r(3)
-      integer(uint8) :: color(4)
+      unsigned(uint8) :: color(4)
       real, parameter :: largest = huge(1.0)
       integer :: i, curr_shader
       real :: smallest, curr, curr_point(3), curr_h_vec(3), curr_v_vec(3)
