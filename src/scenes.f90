@@ -24,26 +24,43 @@ module scenes
              [0.0, 200.0,-20.0],& !point
              [-0.2,-0.2,1.0],& !normal
 
-             [0, 255, 0, 255], & !color
-              0&
+             [237, 116, 253, 255], & !color
+              checkerboard&
            ),&
 
            plane(&
-             [0.0, 200.0,-20.0],& !point
+             [50.0, 250.0,100.0],& !point
              [0.5,-0.4,1.0],& !normal
 
-             [255, 0, 0, 255],& !color
-              0&
+             [122,122, 255, 255],& !color
+              mandlebrot&
            )&
         ],&
 
         [& ! spheres
           sphere(&
             10,& ! radius
-            [0.0, 0.0, 0.0],&
+            [10.0, 10.0, 20.0],&
 
-            [122,122, 255, 255]& !color
-          )&
+            [122,122, 255, 255],& !color
+            rainbow&
+          ),&
+
+           sphere(&
+             100,& ! radius
+             [0.0, 200.0, 20.0],&
+
+             [122,122, 255, 255],& !color
+             checkerboard&
+           ),&
+
+           sphere(&
+             100,& ! radius
+             [0.0, 0.0, 200.0],&
+
+             [122,122, 255, 255],& !color
+             mandlebrot&
+           )&
         ]&
       )
   end function rgb_test

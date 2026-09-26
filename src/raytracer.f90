@@ -81,6 +81,7 @@ module raytracer
       class(scene), intent(inout) :: this
       real, intent(in) :: rotation_vec(3)
       associate(camera_vec => this%camera_vec, h_vec => this%h_vec,v_vec => this%v_vec)
+
         camera_vec = normalize(camera_vec + v_vec * rotation_vec(1))
         v_vec = normalize(compute_cross_product(camera_vec, h_vec))
 
@@ -135,7 +136,7 @@ module raytracer
       integer(uint8) :: color(4)
       real :: smallest, curr
       real, parameter :: largest = huge(1.0)
-      integer :: i
+      integer :: i, out_shader
 
       associate(&
         camera_vec => this%camera_vec,&
@@ -155,7 +156,7 @@ module raytracer
             color = planes(i)%color
             smallest = curr
             color = apply_shader(&
-              planes(i)%shader,planes(i)%color,planes(i)%point,curr * r + camera_pos&
+              planes(i)%shader, planes(i)%color, planes(i)%point, curr * r + camera_pos&
             )
           end if
         end do
@@ -165,6 +166,9 @@ module raytracer
           if(0.0 < curr .and. curr < smallest) then
             smallest = curr
             color = spheres(i)%color
+            color = apply_shader(&
+              spheres(i)%shader, spheres(i)%color, spheres(i)%point, curr * r + camera_pos&
+            )
           end if
         end do
 

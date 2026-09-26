@@ -16,6 +16,7 @@ module primatives
 type :: sphere
     real :: radius, point(3)
     integer(uint8) :: color(4)
+    integer :: shader
     contains
       procedure :: get_sphere_intersection
   end type sphere
@@ -36,14 +37,13 @@ type :: sphere
     pure function get_sphere_intersection(this, r, cam)result(t)
       class(sphere), intent(in) :: this
       real, intent(in) :: r(3), cam(3)
-      real :: t, a, b, c
+      real :: t, b, c
       associate(radius => this%radius, point => this%point)
-        a = dot_product(r,r)
         b = 2 * (dot_product(r, cam) - dot_product(r,point))
         c = dot_product(cam, cam) + (dot_product(point, point))&
             - (2 * dot_product(cam, point)) - (radius ** 2)
 
-        t = ((-1*b) - sqrt((b ** 2) - (4 * a * c))) / (2 * a)
+        t = ((-1*b) - sqrt((b ** 2) - (4 * c))) / 2
       end associate
     end function get_sphere_intersection
 

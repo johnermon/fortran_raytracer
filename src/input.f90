@@ -1,7 +1,6 @@
 module input
   implicit none(type, external)
   public
-  logical, save :: key_event = .false.
   logical, save :: is_pressed(0:512) = .false., is_pressed_toggle(0:512)
 
   integer, parameter :: w = 87, a = 65, s = 83, d = 68, space =32, r = 82, lshift = 340
@@ -16,7 +15,6 @@ module input
       type(c_ptr), value :: window
       integer(c_int), value :: key, bits
       logical(c_bool), value :: pressed
-      key_event = .true.
 
       if(key >=0 .and. key <= 512) then
         is_pressed(key) = pressed
@@ -44,7 +42,7 @@ module input
 
     function keyboard_get_dir() result(dir)
       real :: dir(3)
-      dir = [0,0,0]
+      dir = [0.0,0.0,0.0]
 
       if(is_pressed(w))  dir(1) = dir(1) + 1.0
       if(is_pressed(s))  dir(1) = dir(1) - 1.0
@@ -64,7 +62,7 @@ module input
 
     pure function keyboard_get_rotation() result(dir)
       real :: dir(3)
-      dir = [0,0,0]
+      dir = [0.0,0.0,0.0]
       if(is_pressed(up))  dir(1) = dir(1) - 0.05
       if(is_pressed(down))  dir(1) = dir(1) + 0.05
       if(is_pressed(left))  dir(2) = dir(2) - 0.05
