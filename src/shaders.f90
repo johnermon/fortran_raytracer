@@ -56,7 +56,7 @@ module shaders
       color = colorin
       x1 = abs(dot_product(origin - point, h_vec) / 1000)
       y1 = abs(dot_product(origin - point,v_vec) / 1000)
-      do i=1, 6
+      do i=1, 10
         x1 = mod(3 * x1, 3.0)
         y1 = mod(3 * y1, 3.0)
         if(1<x1.and.x1<2.and.1<y1.and.y1<2) then
@@ -78,12 +78,12 @@ module shaders
       integer :: i
       complex :: z
       z = cmplx(0, 0)
-      do i=1, iterations
+      do i=0, iterations
         z = z ** 2 + cmplx((dot_product(origin - point, h_vec)) / 200, dot_product(origin - point,v_vec) / 200)
       if(4 < real(z) ** 2 + aimag(z) ** 2) then
-        color(1) = int(122.0/iterations * i)
-        color(2) = int(255.0/iterations * i)
-        color(3) = 0
+        color(1) = floor(real(colorin(1))/iterations * i, kind=uint8)
+        color(2) = floor(real(colorin(2))/iterations * i, kind=uint8)
+        color(3) = floor(real(colorin(3))/iterations * i, kind=uint8)
         color(4) = 255
         return
       end if
@@ -103,13 +103,13 @@ module shaders
       integer :: i
       complex :: z
       z = cmplx(0, 0)
-      do i=1, iterations
+      do i=0, iterations
         z = cmplx(abs(real(z)), abs(aimag(z))) ** 2 +&
         cmplx((dot_product(origin - point, h_vec)) / 200, dot_product(origin - point,v_vec) / 200)
       if(4 < real(z) ** 2 + aimag(z) ** 2) then
-        color(1) = 0
-        color(2) = int(128.0/iterations * i)
-        color(3) = int(255.0/iterations * i)
+        color(1) = floor(real(colorin(1))/iterations * i, kind=uint8)
+        color(2) = floor(real(colorin(2))/iterations * i, kind=uint8)
+        color(3) = floor(real(colorin(3))/iterations * i, kind=uint8)
         color(4) = 255
         return
       end if
@@ -128,14 +128,14 @@ module shaders
       integer, parameter :: iterations = 8
       integer :: i
       complex :: z, num
-      num = cmplx((dot_product(origin - point, h_vec)) / 100, dot_product(origin - point,v_vec) / 100)
+      num = cmplx((dot_product(origin - point, h_vec)) / 200, dot_product(origin - point,v_vec) / 200)
       z = num
-      do i=1, iterations
+      do i=0, iterations
         z = z ** num
       if(2.35363 < real(z) ** 2 + aimag(z) ** 2) then
-        color(1) = int(255.0/iterations * i)
-        color(2) = int(128.0/iterations * i)
-        color(3) = 0
+        color(1) = floor(i * real(colorin(1))/iterations, kind=uint8)
+        color(2) = floor(i * real(colorin(2))/iterations, kind=uint8)
+        color(3) = floor(i * real(colorin(3))/iterations, kind=uint8)
         color(4) = 255
         return
       end if
