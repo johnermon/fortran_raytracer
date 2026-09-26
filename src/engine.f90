@@ -66,6 +66,9 @@ module engine
     call update_window()
 
     if(was_just_pressed(p)) call handle_screenshot("output.png", width,height)
+
+    if(was_just_pressed(c)) print *,&
+      "x:", curr_scene%camera_pos(1), "y:", curr_scene%camera_pos(2), "z:", curr_scene%camera_pos(3)
   end function run_once
 
   subroutine update_state()

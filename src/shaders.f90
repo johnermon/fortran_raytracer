@@ -19,7 +19,7 @@ module shaders
         case (rainbow)
           color = rainbow_shader(colorin, origin, point)
         case (checkerboard)
-          color = checkerboard_shader(colorin, origin, point)
+          color = checkerboard_shader(colorin, origin, point, h_vec, v_vec)
         case (mandlebrot)
           color = mandlebrot_shader(colorin, origin, point, h_vec, v_vec)
         case (burningship)
@@ -46,16 +46,16 @@ module shaders
       color(4) = 255
     end function rainbow_shader
 
-    pure function checkerboard_shader(colorin, origin, point) result(color)
+    pure function checkerboard_shader(colorin, origin, point, h_vec, v_vec) result(color)
       use, intrinsic :: iso_fortran_env, only:uint8
-      real, intent(in) :: origin(3), point(3)
+      real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
       integer(uint8), intent(in) :: colorin(4)
       integer(uint8) :: color(4)
       real :: x1, y1
       integer :: i
       color = colorin
-      x1 = abs((point(1) - origin(1)) / 1000)
-      y1 = abs((point(2) - origin(2)) / 1000)
+      x1 = abs(dot_product(origin - point, h_vec) / 1000)
+      y1 = abs(dot_product(origin - point,v_vec) / 1000)
       do i=1, 6
         x1 = mod(3 * x1, 3.0)
         y1 = mod(3 * y1, 3.0)
@@ -76,7 +76,7 @@ module shaders
       complex :: z
       z = cmplx(0, 0)
       do i=1, iterations
-        z = z ** 2 + cmplx((dot_product(point, h_vec)) / 200, dot_product(point,v_vec) / 200)
+        z = z ** 2 + cmplx((dot_product(origin - point, h_vec)) / 200, dot_product(origin - point,v_vec) / 200)
       if(4 < real(z) ** 2 + aimag(z) ** 2) then
         color(1) = int(122.0/iterations * i)
         color(2) = int(255.0/iterations * i)
@@ -99,7 +99,7 @@ module shaders
       z = cmplx(0, 0)
       do i=1, iterations
         z = cmplx(abs(real(z)), abs(aimag(z))) ** 2 +&
-        cmplx((dot_product(point, h_vec)) / 200, dot_product(point,v_vec) / 200)
+        cmplx((dot_product(origin - point, h_vec)) / 200, dot_product(origin - point,v_vec) / 200)
       if(4 < real(z) ** 2 + aimag(z) ** 2) then
         color(1) = 0
         color(2) = int(128.0/iterations * i)
@@ -119,7 +119,7 @@ module shaders
       integer, parameter :: iterations = 8
       integer :: i
       complex :: z, num
-      num = cmplx((dot_product(point, h_vec)) / 200, dot_product(point,v_vec) / 200)
+      num = cmplx((dot_product(origin - point, h_vec)) / 100, dot_product(origin - point,v_vec) / 100)
       z = num
       do i=1, iterations
         z = z ** num

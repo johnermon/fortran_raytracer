@@ -1,6 +1,6 @@
 module scenes
   use raytracer, only:scene
-  use primatives, only:plane_new, sphere
+  use primatives, only:plane_new, sphere_new
   use shaders
 
   implicit none(type, external)
@@ -46,29 +46,29 @@ module scenes
         ],&
 
         [& ! spheres
-          sphere(&
-            10,& ! radius
+          sphere_new(&
+            10.0,& ! radius
             [10.0, 10.0, 20.0],&
 
             [122,122, 255, 255],& !color
-            burningship&
+            checkerboard&
           ),&
 
-           sphere(&
-             100,& ! radius
+           sphere_new(&
+             100.0,& ! radius
              [0.0, 200.0, 300.0],&
 
              [122,122, 255, 255],& !color
               mandlebrot&
            ),&
 
-           sphere(&
-             100,& ! radius
-             [0.0, 0.0, 200.0],&
+           sphere_new(&
+             150.0,& ! radius
+             [317.0, 574.0, 173.0],&
 
              [122,122, 255, 255],& !color
-             powertower&
-           )&
+              burningship&
+            )&
         ]&
       )
   end function rgb_test

@@ -7,7 +7,7 @@ module input
 
   integer, parameter :: up = 265, down = 264, left = 263, right = 262, q = 81, e = 69
 
-  integer, parameter :: p = 80, esc = 256
+  integer, parameter :: p = 80, esc = 256, c = 67
 
   contains
     subroutine update_input(window, key, bits, pressed) bind(c)

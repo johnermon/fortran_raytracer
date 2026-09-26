@@ -14,7 +14,7 @@ module primatives
   !   module procedure :: plane_new
   ! end interface plane
 type :: sphere
-    real :: radius, point(3)
+    real :: radius, point(3), h_vec(3), v_vec(3)
     integer(uint8) :: color(4)
     integer :: shader
     contains
@@ -37,6 +37,21 @@ type :: sphere
       new_plane%color = int([color(1), color(2), color(3), color(4)], kind = uint8)
       new_plane%shader = shade
     end function plane_new
+
+    pure function sphere_new(radius, point, color, shade) result(new_sphere)
+      use library, only:up_vec
+      real, intent(in) :: point(3), radius
+      integer, intent(in) :: shade
+      integer, intent(in) :: color(4)
+      type(sphere) :: new_sphere
+
+      new_sphere%h_vec = normalize(compute_cross_product(point, up_vec))
+      new_sphere%v_vec = normalize(compute_cross_product(point, new_sphere%h_vec))
+      new_sphere%point = point
+      new_sphere%radius = radius
+      new_sphere%color = int([color(1), color(2), color(3), color(4)], kind = uint8)
+      new_sphere%shader = shade
+    end function sphere_new
 
     pure function get_sphere_intersection(this, r, cam)result(t)
       class(sphere), intent(in) :: this

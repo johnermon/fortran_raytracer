@@ -165,8 +165,8 @@ module raytracer
             color = spheres(i)%color
             curr_shader = spheres(i)%shader
             curr_point = spheres(i)%point
-            curr_v_vec = up_vec
-            curr_h_vec = curr * r + camera_pos
+            curr_v_vec = spheres(i)%v_vec
+            curr_h_vec = spheres(i)%h_vec
           end if
         end do
 
