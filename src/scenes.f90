@@ -48,7 +48,7 @@ module scenes
 
            sphere(&
              100,& ! radius
-             [0.0, 200.0, 20.0],&
+             [0.0, 200.0, 300.0],&
 
              [122,122, 255, 255],& !color
              checkerboard&

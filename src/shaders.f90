@@ -15,8 +15,6 @@ module shaders
       integer(uint8) :: color(4)
       integer(uint8), parameter :: blank(4) = [0_uint8,0_uint8,0_uint8,0_uint8]
       select case (shader)
-        case (0)
-          color = colorin
         case (rainbow)
           color = rainbow_shader(colorin, origin, point)
         case (checkerboard)

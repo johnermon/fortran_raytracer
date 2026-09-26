@@ -133,10 +133,10 @@ module raytracer
       use, intrinsic :: iso_fortran_env, only:uint8
       class(scene), intent(in) :: this
       real, intent(in) :: r(3)
-      integer(uint8) :: color(4)
-      real :: smallest, curr
+      integer(uint8) :: color(4), curr_color(4)
       real, parameter :: largest = huge(1.0)
-      integer :: i, out_shader
+      integer :: i, curr_shader
+      real :: smallest, curr, curr_point(3)
 
       associate(&
         camera_vec => this%camera_vec,&
@@ -149,15 +149,15 @@ module raytracer
         color = sky_color
         curr = smallest
         smallest = largest
+        curr_shader = 0
 
         do i=1, size(planes)
           curr = planes(i)%get_plane_intersection(r, camera_pos)
           if(0.0 < curr .and. curr < smallest) then
-            color = planes(i)%color
             smallest = curr
-            color = apply_shader(&
-              planes(i)%shader, planes(i)%color, planes(i)%point, curr * r + camera_pos&
-            )
+            curr_color = planes(i)%color
+            curr_shader = planes(i)%shader
+            curr_point = planes(i)%point
           end if
         end do
 
@@ -165,12 +165,17 @@ module raytracer
           curr = spheres(i)%get_sphere_intersection(r, camera_pos)
           if(0.0 < curr .and. curr < smallest) then
             smallest = curr
-            color = spheres(i)%color
-            color = apply_shader(&
-              spheres(i)%shader, spheres(i)%color, spheres(i)%point, curr * r + camera_pos&
-            )
+            curr_color = spheres(i)%color
+            curr_shader = spheres(i)%shader
+            curr_point = spheres(i)%point
           end if
         end do
+
+        if (.not.curr_shader == 0) then
+          color = apply_shader(&
+            curr_shader, curr_color, curr_point, smallest * r + camera_pos&
+          )
+        end if
 
     end associate
     end function get_ray_color
