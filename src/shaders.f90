@@ -60,7 +60,10 @@ module shaders
         x1 = mod(3 * x1, 3.0)
         y1 = mod(3 * y1, 3.0)
         if(1<x1.and.x1<2.and.1<y1.and.y1<2) then
-          color = [106, 42, 101, 255]
+          color(1) = 106
+          color(2) = 42
+          color(3) = 101
+          color(4) = 255
           exit
         end if
       end do
@@ -84,7 +87,10 @@ module shaders
         color(4) = 255
         return
       end if
-        color = [0,0,0,255]
+        color(1) = 0
+        color(2) = 0
+        color(3) = 0
+        color(4) = 255
       end do
     end function mandlebrot_shader
 
@@ -107,7 +113,10 @@ module shaders
         color(4) = 255
         return
       end if
-        color = [0,0,0,255]
+        color(1) = 0
+        color(2) = 0
+        color(3) = 0
+        color(4) = 255
       end do
     end function burningship_shader
 
@@ -130,7 +139,10 @@ module shaders
         color(4) = 255
         return
       end if
-        color = [0,0,0,255]
+        color(1) = 0
+        color(2) = 0
+        color(3) = 0
+        color(4) = 255
       end do
     end function powertower_shader
 end module shaders

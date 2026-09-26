@@ -55,7 +55,6 @@ module input
         if(was_just_pressed(r)) then
             run_toggle = .not.run_toggle
         end if
-
         if(run_toggle) dir = 2*dir
       end block
     end function keyboard_get_dir

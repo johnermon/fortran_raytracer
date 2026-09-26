@@ -47,10 +47,10 @@ module scenes
 
         [& ! spheres
           sphere_new(&
-            10.0,& ! radius
-            [10.0, 10.0, 20.0],&
+            60.0,& ! radius
+            [157.0, -103.0, 137.0],&
 
-            [122,122, 255, 255],& !color
+            [6,6, 120, 255],& !color
             checkerboard&
           ),&
 
