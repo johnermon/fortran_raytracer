@@ -34,6 +34,14 @@ module scenes
 
              [122,122, 255, 255],& !color
               mandlebrot&
+           ),&
+
+           plane(&
+             [50.0, 250.0,500.0],& !point
+             [-0.5,0.4,-1.0],& !normal
+
+             [0,0, 255, 255],& !color
+              burningship&
            )&
         ],&
 
