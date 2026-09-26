@@ -60,10 +60,7 @@ module shaders
         x1 = mod(3 * x1, 3.0)
         y1 = mod(3 * y1, 3.0)
         if(1<x1.and.x1<2.and.1<y1.and.y1<2) then
-          color(1) = 106u
-          color(2) = 42u
-          color(3) = 101u
-          color(4) = 255u
+          color = colorin / 3u
           exit
         end if
       end do

@@ -32,7 +32,7 @@ module engine
     use , intrinsic :: iso_c_binding, only:c_null_ptr, c_funloc
     use c_bindings, only:mfb_set_keyboard_callback
     window = c_null_ptr
-    curr_scene = rgb_test()
+    curr_scene = fractal_planetarium()
     call curr_scene%set_resolution(width, height)
 
     allocate(canvas(4,curr_scene%width,curr_scene%height))
