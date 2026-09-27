@@ -74,7 +74,11 @@ module scenes
       )
   end function rgb_test
 
-  !vibecoded scenes my friend made, only here for testing, for which they are pretty good tbf
+  !vibecoded scenes my friend made, only here for testing, for which they are pretty good
+  !i do not vibe code tho i must admit these are more coherent scnenes than rgb test.
+  !anywho i dont vibecode. this wasnt mine. i, just shoving it in the repo to have more variety.
+  !these names are super tryhard too. moire garden? fractal_planetarium? they are just some multi
+  !colored planes and spheres with fractals drawn on them its not that deep bro
   function moire_garden() result(ret)
     use, intrinsic :: iso_fortran_env, only:uint8
     type(scene) :: ret

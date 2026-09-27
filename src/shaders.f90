@@ -129,7 +129,7 @@ module shaders
       z = num
       do i=0, iterations
         z = z ** num
-      if(2.35363 < real(z) ** 2 + aimag(z) ** 2) then
+      if(5.539574177 < real(z) ** 2 + aimag(z) ** 2) then
         color(1) = uint(floor(real(colorin(1))/iterations * i, kind=uint8))
         color(2) = uint(floor(real(colorin(2))/iterations * i, kind=uint8))
         color(3) = uint(floor(real(colorin(3))/iterations * i, kind=uint8))
