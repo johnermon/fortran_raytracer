@@ -37,7 +37,6 @@ module engine
     call curr_scene%set_resolution(width, height)
 
     anim = load_animation("bad_apple")
-    print *,"width: ",  anim%width, " height: ", anim%height
     call unload_animation(anim)
 
     allocate(canvas(4,curr_scene%width,curr_scene%height))
