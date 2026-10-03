@@ -46,52 +46,51 @@ animation_t load_anim(const char *name) {
 
   // generates prototype for all other files to follow.
 
-  if (tinydir_open(&dir, name) == -1)
+  size_t iter = 0;
+
+  if (tinydir_open_sorted(&dir, name) == -1)
     goto error;
 
-  if (dir.has_next) {
-    if (tinydir_readfile(&dir, &file) == -1)
+  if (tinydir_readfile_n(&dir, &file, iter) == -1)
+    goto close;
+
+  while (file.is_dir) {
+    iter++;
+    if (tinydir_readfile_n(&dir, &file, iter) == -1)
       goto close;
-
-    while (file.is_dir) {
-      tinydir_next(&dir);
-      if (tinydir_readfile(&dir, &file) == -1)
-        goto close;
-    }
-
-    if (!file.is_dir) {
-      FILE *loaded_file = fopen(file.path, "rb");
-      if (loaded_file == NULL) {
-        goto close;
-      }
-
-      temp_buf = (char *)malloc(file._s.st_size);
-      if (temp_buf == NULL) {
-        fclose(loaded_file);
-        goto close;
-      }
-
-      if (fread(temp_buf, file._s.st_size, 1, loaded_file) != 1) {
-        fclose(loaded_file);
-        goto cleanup1;
-      }
-
-      fclose(loaded_file);
-
-      memcpy(&anim.width, temp_buf + 18, sizeof(int));
-      memcpy(&anim.height, temp_buf + 22, sizeof(int));
-      memcpy(&anim.bpp, temp_buf + 28, sizeof(uint16_t));
-
-      file_size = file._s.st_size;
-      frame_size = (anim.bpp / 8) * anim.width * anim.height;
-      file_count++;
-    }
-    tinydir_next(&dir);
   }
 
+  FILE *loaded_file = fopen(file.path, "rb");
+  if (loaded_file == NULL)
+    goto close;
+
+  temp_buf = (char *)malloc(file._s.st_size);
+
+  if (temp_buf == NULL) {
+    fclose(loaded_file);
+    goto close;
+  }
+
+  if (fread(temp_buf, file._s.st_size, 1, loaded_file) != 1) {
+    fclose(loaded_file);
+    goto cleanup1;
+  }
+
+  fclose(loaded_file);
+
+  memcpy(&anim.width, temp_buf + 18, sizeof(int));
+  memcpy(&anim.height, temp_buf + 22, sizeof(int));
+  memcpy(&anim.bpp, temp_buf + 28, sizeof(uint16_t));
+
+  file_size = file._s.st_size;
+  frame_size = (anim.bpp / 8) * anim.width * anim.height;
+  file_count++;
+  iter++;
+
+  printf("cung y l\n");
   // gets count of files, by finishing the iteration
-  while (dir.has_next) {
-    if (tinydir_readfile(&dir, &file) == -1)
+  for (size_t i = iter; i < dir.n_files; i++) {
+    if (tinydir_readfile_n(&dir, &file, i) == -1)
       goto cleanup1;
 
     if (!file.is_dir) {
@@ -105,15 +104,13 @@ animation_t load_anim(const char *name) {
         goto cleanup1;
       }
     }
-
-    tinydir_next(&dir);
   }
   tinydir_close(&dir);
 
   // second pass loads opens each file and saves it to the buffer
   // the first file becomes prototype for the rest of the files, if the bpp
   // width and height dont match you get an error
-  if (tinydir_open(&dir, name) == -1) {
+  if (tinydir_open_sorted(&dir, name) == -1) {
     free((void *)temp_buf);
     goto error;
   }
@@ -125,8 +122,8 @@ animation_t load_anim(const char *name) {
   anim.frame_count = file_count;
   file_count = 0;
 
-  while (dir.has_next) {
-    if (tinydir_readfile(&dir, &file) == -1)
+  for (size_t i = 0; i < dir.n_files; i++) {
+    if (tinydir_readfile_n(&dir, &file, i) == -1)
       goto cleanup2;
 
     if (!file.is_dir) {
@@ -167,7 +164,6 @@ animation_t load_anim(const char *name) {
 
       file_count++;
     }
-    tinydir_next(&dir);
   }
 
   // success case

@@ -11,7 +11,7 @@ module engine
     real :: frame_delta
     integer:: count, count_prev
     contains
-      procedure :: update => update_accumulator, wait => accumulator_wait
+      procedure :: update => update_accumulator, wait => accumulator_wait, setup => accumulator_setup
   end type accumulator
 
   unsigned(uint8), allocatable, target::  canvas(:,:,:)
@@ -35,6 +35,7 @@ module engine
     allocate(canvas(4,curr_scene%width,curr_scene%height))
     call open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
     call mfb_set_keyboard_callback(window, c_funloc(update_input))
+    call acc%setup()
     call setup_bad_apple ()
   end subroutine setup
 
@@ -120,8 +121,10 @@ module engine
   subroutine close_engine()
     use , intrinsic :: iso_c_binding, only: c_ptr
     use c_bindings, only:mfb_close
+    use shaders, only:remove_bad_apple
     call mfb_close(window)
     deallocate(canvas)
+    call remove_bad_apple()
   end subroutine close_engine
 
   subroutine handle_screenshot(name, width, height, canvas_in)
@@ -152,13 +155,14 @@ module engine
 
     deallocate(tmp_canvas)
   end subroutine handle_screenshot
-  subroutine unload_animation(anim)
-    use library, only:animation
-    use, intrinsic :: iso_c_binding, only:c_loc
-    use c_bindings, only:c_free
-    type(animation), target, intent(in) :: anim
-    call c_free(c_loc(anim%data(1,1,1,1)))
-  end subroutine unload_animation
+
+  subroutine accumulator_setup(this)
+    class(accumulator), intent(inout) :: this
+    !kinda hacky but  sets it up to accumulate things up properly going forward.
+    !if it works and its stupid its not stupid
+    call acc%update()
+    acc%frames_accumulated = 0
+  end subroutine accumulator_setup
 
   subroutine update_accumulator(this)
       use, intrinsic:: iso_c_binding, only:c_int32_t

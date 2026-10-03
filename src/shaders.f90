@@ -7,16 +7,21 @@ module shaders
                         powertower = 5, badapple = 6
 
   type(animation) :: badapple_anim
-  integer :: badapple_frame
+  real :: badapple_frame
 
   contains
     subroutine setup_bad_apple()
-      badapple_frame = 1
+      badapple_frame = 0.0
       badapple_anim = load_animation("bad_apple")
     end subroutine setup_bad_apple
 
+    subroutine remove_bad_apple()
+      use library, only:unload_animation
+      call unload_animation(badapple_anim)
+    end subroutine remove_bad_apple
+
     subroutine update_bad_apple_state()
-      badapple_frame = mod(badapple_frame + 1, badapple_anim%frame_count)
+      badapple_frame = mod(badapple_frame + 0.25, real(badapple_anim%frame_count))
     end subroutine update_bad_apple_state
 
     !this funcion is static dispatch for shaders. i tried function pointers for runtime
@@ -156,6 +161,7 @@ module shaders
         color(4) = 255u
       end do
     end function powertower_shader
+
     pure function badapple_shader(colorin, origin, point, h_vec, v_vec) result(color)
       use, intrinsic :: iso_fortran_env, only:uint8
       real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
@@ -163,9 +169,9 @@ module shaders
       unsigned(uint8), intent(in) :: colorin(4)
       unsigned(uint8) :: color(4)
       
-      x = floor(abs(dot_product(origin - point, h_vec)))
-      y = floor(abs(dot_product(origin - point, v_vec)))
-      color = badapple_anim%data(:,mod(x,badapple_anim%width),mod(y,badapple_anim%height),badapple_frame)
+      x = ceiling(abs(dot_product(origin - point, h_vec)))
+      y = ceiling(abs(dot_product(origin - point, v_vec)))
+      color = badapple_anim%data(:,mod(x,badapple_anim%width),mod(y,badapple_anim%height),int(floor(badapple_frame)))
 
       end function badapple_shader
 end module shaders
