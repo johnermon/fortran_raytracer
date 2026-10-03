@@ -10,6 +10,8 @@ module shaders
   real :: badapple_frame
 
   contains
+  !hacky functions just to hardcode the badapple behavior, will be made proper. on the
+  !bright side this shows it does work, asset loading pipeline all the way to renderer
     subroutine setup_bad_apple()
       badapple_frame = 0.0
       badapple_anim = load_animation("bad_apple")
@@ -75,7 +77,7 @@ module shaders
       color = colorin
       x1 = abs(dot_product(origin - point, h_vec) / 1000)
       y1 = abs(dot_product(origin - point,v_vec) / 1000)
-      do i=1, 10
+      do i=1, 5
         x1 = mod(3 * x1, 3.0)
         y1 = mod(3 * y1, 3.0)
         if(1<x1.and.x1<2.and.1<y1.and.y1<2) then
@@ -169,8 +171,8 @@ module shaders
       unsigned(uint8), intent(in) :: colorin(4)
       unsigned(uint8) :: color(4)
       
-      x = ceiling(abs(dot_product(origin - point, h_vec)))
-      y = ceiling(abs(dot_product(origin - point, v_vec)))
+      x = ceiling(abs(dot_product(origin - point, h_vec)/real(colorin(4))))
+      y = ceiling(abs(dot_product(origin - point, v_vec)/real(colorin(4))))
       color = badapple_anim%data(:,mod(x,badapple_anim%width),mod(y,badapple_anim%height),int(floor(badapple_frame)))
 
       end function badapple_shader

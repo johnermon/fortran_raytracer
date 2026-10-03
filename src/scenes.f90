@@ -120,7 +120,7 @@ module scenes
     use, intrinsic :: iso_fortran_env, only:uint8
     type(scene) :: ret
       ret = scene_new(&
-        [2249.0, 791.0, 741.0],&                        ! camera position
+        [973.0, 1353.0, 260.0],&                        ! camera position
         [0.68, 0.68, 0.27],&                     ! camera direction (unit length)
         uint([90, 40, 20, 255], kind=uint8),&    ! sky: deep twilight navy
         [&! planes
@@ -135,8 +135,8 @@ module scenes
           sphere_new(&                           ! the planet: molten gold
             400.0,&
             [1800.0, 1800.0, 500.0],&
-            uint([40, 200, 255, 255], kind=uint8),&
-            mandlebrot&
+            uint([40, 200, 255, 4], kind=uint8),&
+            badapple&
           ),&
           sphere_new(&                           ! moon 1: icy blue
             220.0,&
@@ -147,8 +147,8 @@ module scenes
           sphere_new(&                           ! moon 2: hot pink
             250.0,&
             [2600.0, 1000.0, 800.0],&
-            uint([220, 90, 255, 255], kind=uint8),&
-            badapple&
+            uint([40, 200, 255, 255], kind=uint8),&
+            mandlebrot&
           ),&
           sphere_new(60.0, [450.0,  250.0, -140.0], uint([ 60,  40, 220, 255], kind=uint8), checkerboard),& ! ruby
           sphere_new(60.0, [600.0,  450.0, -140.0], uint([ 90, 200,  60, 255], kind=uint8), checkerboard),& ! emerald
