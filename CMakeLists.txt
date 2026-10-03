@@ -6,7 +6,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(src)
 
-
 include(FetchContent)
 
 set(MINIFB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -28,6 +27,18 @@ FetchContent_MakeAvailable(stb_image_write)
 
 add_library(stb_image_write INTERFACE)
 
+FetchContent_Declare(
+  tinydir
+  GIT_REPOSITORY https://github.com/cxong/tinydir.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(tinydir)
+
+add_library(tinydir INTERFACE)
+target_include_directories(tinydir INTERFACE
+    "${tinydir_SOURCE_DIR}"
+)
+
 target_include_directories(stb_image_write INTERFACE
     "${stb_image_write_SOURCE_DIR}"
 )
@@ -47,6 +58,7 @@ target_compile_options(fortran_raytracer PRIVATE
 target_link_libraries(fortran_raytracer PRIVATE
   minifb
   stb_image_write
+  tinydir
 )
 
 target_link_options(fortran_raytracer PRIVATE

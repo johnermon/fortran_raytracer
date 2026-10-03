@@ -1,6 +1,14 @@
 module library
+  use, intrinsic :: iso_c_binding, only: c_size_t, c_int, c_ptr
   implicit none(type, external)
   real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
+
+  type , bind(c) :: animation
+    type(c_ptr) :: data
+    integer(c_size_t) :: frame_size
+    integer(c_int) :: height, width
+  end type animation
+
   public
   contains
     pure function compute_cross_product(u, v) result(p)
@@ -17,5 +25,4 @@ module library
       real :: p(3)
     p = v / sqrt(dot_product(v, v))
     end function normalize
-
 end module library

@@ -1,5 +1,5 @@
 module engine
-  use , intrinsic :: iso_c_binding, only: c_ptr
+  use, intrinsic :: iso_c_binding, only: c_size_t, c_int, c_ptr
   use, intrinsic :: iso_fortran_env, only:uint8
   use raytracer, only:scene
   use input
@@ -24,16 +24,19 @@ module engine
 
   private
 
-
   public :: run_once, setup, close_engine
   contains
 
   subroutine setup()
     use , intrinsic :: iso_c_binding, only:c_null_ptr, c_funloc
     use c_bindings, only:mfb_set_keyboard_callback
+    use library, only:animation
+    type(animation) :: anim
     window = c_null_ptr
     curr_scene = fractal_planetarium()
     call curr_scene%set_resolution(width, height)
+
+    anim = load_animation("bad_apple")
 
     allocate(canvas(4,curr_scene%width,curr_scene%height))
     call open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
@@ -131,7 +134,7 @@ module engine
     character(len=*), intent(in) :: name
     integer(c_int), intent(in), value :: width, height
 
-    character(kind=c_char, len=:), allocatable, save:: c_name
+    character(kind=c_char, len=:), allocatable:: c_name
     unsigned(uint8), allocatable, target, save::  tmp_canvas(:,:,:)
     type(c_ptr) ::  pixels
 
@@ -150,6 +153,25 @@ module engine
 
     deallocate(tmp_canvas)
   end subroutine handle_screenshot
+
+  function load_animation(name) result(anim)
+    use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char, c_associated
+    use, intrinsic :: iso_fortran_env, only:uint8
+    use c_bindings, only:load_anim
+    use library, only:animation
+    character(len=*), intent(in) :: name
+    character(kind=c_char, len=:), allocatable:: c_name
+    type(animation) :: anim
+
+    c_name = "assets/" // name // c_null_char
+    anim = load_anim(c_name)
+
+    if(.not.c_associated(anim%data)) then
+      print *, "failed to generate animation, dir ", name, " may not exist as a directory"
+      error stop
+    end if
+
+  end function load_animation
 
   subroutine update_accumulator(this)
       use, intrinsic:: iso_c_binding, only:c_int32_t
