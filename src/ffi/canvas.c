@@ -2,6 +2,7 @@
 #include <MiniFB.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <tinydir.h>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -37,17 +38,30 @@ animation_t load_anim(const char *name) {
   int file_count = 0;
   size_t alloc_size = 0;
 
-  if (tinydir_open_sorted(&dir, name) == -1)
+  if (tinydir_open(&dir, name) == -1)
     goto error;
 
   if (dir.has_next) {
     if (tinydir_readfile(&dir, &file) == -1)
       goto close;
 
+    while (file.is_dir) {
+      tinydir_next(&dir);
+      if (tinydir_readfile(&dir, &file) == -1)
+        goto close;
+    }
+
     if (!file.is_dir) {
       anim.frame_size = file._s.st_size;
+      FILE *loaded_file = fopen(file.path, "rb");
+
+      fseek(loaded_file, 18, SEEK_SET);
+      fread(&anim.width, sizeof(int), 1, loaded_file);
+      fread(&anim.height, sizeof(int), 1, loaded_file);
+
       file_count++;
       alloc_size += file._s.st_size;
+      fclose(loaded_file);
     }
 
     tinydir_next(&dir);
@@ -74,7 +88,7 @@ animation_t load_anim(const char *name) {
   }
   tinydir_close(&dir);
 
-  if (tinydir_open_sorted(&dir, name) == -1)
+  if (tinydir_open(&dir, name) == -1)
     goto error;
 
   anim.data = (char *)malloc(alloc_size);
@@ -105,4 +119,9 @@ close:
   tinydir_close(&dir);
 error:
   return (animation_t){NULL, 0, 0, 0};
+}
+
+void dealloc_anim(animation_t *anim) {
+  free((void *)anim->data);
+  anim->data = NULL;
 }

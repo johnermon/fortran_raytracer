@@ -12,11 +12,16 @@ module c_bindings
     end function c_write_png
 
     function load_anim(name) bind(C, name="load_anim")
-      use , intrinsic :: iso_c_binding, only: c_ptr, c_char
+      use , intrinsic :: iso_c_binding, only: c_char
       use library, only:animation
       character(c_char), intent(in) :: name(*)
       type(animation) :: load_anim
     end function load_anim
+
+    subroutine dealloc_anim(anim) bind(C, name="dealloc_anim")
+      use, intrinsic :: iso_c_binding, only:c_ptr
+      type(c_ptr), value :: anim
+    end subroutine dealloc_anim
 
     function mfb_open_signed_int(name, width, height) bind(C, name="mfb_open_signed_int")
       use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int

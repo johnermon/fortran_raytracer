@@ -37,6 +37,8 @@ module engine
     call curr_scene%set_resolution(width, height)
 
     anim = load_animation("bad_apple")
+    print *,"width: ",  anim%width, " height: ", anim%height
+    call unload_animation(anim)
 
     allocate(canvas(4,curr_scene%width,curr_scene%height))
     call open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
@@ -170,8 +172,15 @@ module engine
       print *, "failed to generate animation, dir ", name, " may not exist as a directory"
       error stop
     end if
-
   end function load_animation
+
+  subroutine unload_animation(anim)
+    use library, only:animation
+    use, intrinsic :: iso_c_binding, only:c_loc
+    use c_bindings, only:dealloc_anim
+    type(animation), target, intent(in) :: anim
+    call dealloc_anim(c_loc(anim))
+  end subroutine unload_animation
 
   subroutine update_accumulator(this)
       use, intrinsic:: iso_c_binding, only:c_int32_t
