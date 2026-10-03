@@ -26,6 +26,7 @@ typedef struct animation {
   char *data;
   size_t frame_size;
   int height, width;
+  uint16_t bpp;
 } animation_t;
 
 // i hate this function its 200 lines long but because each pipeline step works
@@ -38,7 +39,6 @@ animation_t load_anim(const char *name) {
   tinydir_file file;
 
   int file_count = 0;
-  uint16_t bpp = 0;
   size_t file_size = 0;
 
   char *temp_buf = NULL;
@@ -80,13 +80,13 @@ animation_t load_anim(const char *name) {
 
       memcpy(&anim.width, temp_buf + 18, sizeof(int));
       memcpy(&anim.height, temp_buf + 22, sizeof(int));
-      memcpy(&bpp, temp_buf + 28, sizeof(uint16_t));
+      memcpy(&anim.bpp, temp_buf + 28, sizeof(uint16_t));
 
       file_size = file._s.st_size;
-      anim.frame_size = bpp * anim.width * anim.height;
+      anim.frame_size = (anim.bpp / 8) * anim.width * anim.height;
 
       printf("Animation %s: \nheight: %d, width: %d, bpp: %hu\n", name,
-             anim.height, anim.width, bpp);
+             anim.height, anim.width, anim.bpp);
       file_count++;
     }
     tinydir_next(&dir);
@@ -116,13 +116,12 @@ animation_t load_anim(const char *name) {
   // second pass loads opens each file and saves it to the buffer
   // the first file becomes prototype for the rest of the files, if the bpp
   // width and height dont match you get an error
-  if (tinydir_open(&dir, name) == -1){
-     free((void *)temp_buf);
-     goto error;
+  if (tinydir_open(&dir, name) == -1) {
+    free((void *)temp_buf);
+    goto error;
   }
 
-  size_t bufsize = (anim.height * anim.width * (bpp / 8));
-  anim.data = (char *)malloc(file_count * bufsize);
+  anim.data = (char *)malloc(file_count * anim.frame_size);
   if (anim.data == NULL)
     goto cleanup1;
 
@@ -143,6 +142,7 @@ animation_t load_anim(const char *name) {
         fclose(loaded_file);
         goto cleanup2;
       }
+
       fclose(loaded_file);
 
       int height = 0, width = 0;
@@ -157,15 +157,15 @@ animation_t load_anim(const char *name) {
         goto cleanup2;
       }
 
-      if (bpp != curr_bpp) {
+      if (anim.bpp != curr_bpp) {
         fprintf(stderr, "bpp in file name %s deviates\n", file.name);
         goto cleanup2;
       }
 
       uint32_t offset_from_file = 0;
       memcpy(&offset_from_file, temp_buf + 10, sizeof(uint32_t));
-      memcpy(anim.data + file_count * bufsize, temp_buf + offset_from_file,
-             bufsize);
+      memcpy(anim.data + file_count * anim.frame_size,
+             temp_buf + offset_from_file, anim.frame_size);
       file_count++;
     }
     tinydir_next(&dir);

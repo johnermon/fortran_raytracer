@@ -1,11 +1,18 @@
 module library
-  use, intrinsic :: iso_c_binding, only: c_size_t, c_int, c_ptr
+  use, intrinsic :: iso_c_binding, only: c_size_t, c_int, c_int16_t, c_ptr
+  use, intrinsic :: iso_fortran_env, only:uint8
   implicit none(type, external)
   real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
 
-  type , bind(c) :: animation
+  type , bind(c) :: c_animation
     type(c_ptr) :: data
     integer(c_size_t) :: frame_size
+    integer(c_int) :: height, width
+    integer(c_int16_t) :: bpp
+  end type c_animation
+
+  type :: animation
+    unsigned(uint8), pointer :: data(:,:,:,:) => null()
     integer(c_int) :: height, width
   end type animation
 

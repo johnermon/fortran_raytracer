@@ -28,15 +28,16 @@ module engine
   contains
 
   subroutine setup()
-    use , intrinsic :: iso_c_binding, only:c_null_ptr, c_funloc
-    use c_bindings, only:mfb_set_keyboard_callback
+    use , intrinsic :: iso_c_binding, only:c_null_ptr, c_funloc, c_null_char
+    use c_bindings, only:mfb_set_keyboard_callback, c_write_png
     use library, only:animation
+    
     type(animation) :: anim
     window = c_null_ptr
     curr_scene = fractal_planetarium()
     call curr_scene%set_resolution(width, height)
-
     anim = load_animation("bad_apple")
+      call handle_screenshot("the_baddest_apple.png",anim%width, anim%height, anim%data(:,:,:,100))
     call unload_animation(anim)
 
     allocate(canvas(4,curr_scene%width,curr_scene%height))
@@ -69,7 +70,7 @@ module engine
 
     call update_window()
 
-    if(was_just_pressed(p)) call handle_screenshot("output.png", width,height)
+    if(was_just_pressed(p)) call handle_screenshot("output.png", width,height, canvas)
 
     if(was_just_pressed(c)) print *,&
       "x:", curr_scene%camera_pos(1), "y:", curr_scene%camera_pos(2), "z:", curr_scene%camera_pos(3)
@@ -127,10 +128,11 @@ module engine
     deallocate(canvas)
   end subroutine close_engine
 
-  subroutine handle_screenshot(name, width, height)
+  subroutine handle_screenshot(name, width, height, canvas_in)
     use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char
     use, intrinsic :: iso_fortran_env, only:uint8
     use c_bindings, only:c_write_png
+    unsigned(uint8), target::  canvas_in(:,:,:)
 
     character(len=*), intent(in) :: name
     integer(c_int), intent(in), value :: width, height
@@ -143,7 +145,7 @@ module engine
 
     allocate(tmp_canvas(4,width,height))
 
-    tmp_canvas = canvas([3,2,1,4], :,:)
+    tmp_canvas = canvas_in([3,2,1,4], :,:)
 
     pixels = c_loc(tmp_canvas(1,1,1))
 
@@ -156,18 +158,27 @@ module engine
   end subroutine handle_screenshot
 
   function load_animation(name) result(anim)
-    use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char, c_associated
+    use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char, c_associated, c_f_pointer
     use, intrinsic :: iso_fortran_env, only:uint8
     use c_bindings, only:load_anim
-    use library, only:animation
+    use library, only:c_animation, animation
     character(len=*), intent(in) :: name
     character(kind=c_char, len=:), allocatable:: c_name
+    type(c_animation) :: c_anim
     type(animation) :: anim
 
     c_name = "assets/" // name // c_null_char
-    anim = load_anim(c_name)
+    c_anim = load_anim(c_name)
 
-    if(.not.c_associated(anim%data)) then
+    anim%width = c_anim%width
+    anim%height = c_anim%height
+
+    call c_f_pointer(c_anim%data, anim%data, [&
+      int(c_anim%bpp / 8), int(c_anim%width), int(c_anim%height),&
+      int(((c_anim%bpp / 8 ) * c_anim%width * c_anim%height) / c_anim%frame_size)&
+    ])
+
+    if(.not.c_associated(c_anim%data)) then
       print *, "failed to generate animation, dir ", name, " may not exist as a directory"
       error stop
     end if
@@ -176,9 +187,9 @@ module engine
   subroutine unload_animation(anim)
     use library, only:animation
     use, intrinsic :: iso_c_binding, only:c_loc
-    use c_bindings, only:dealloc_anim
+    use c_bindings, only:c_free
     type(animation), target, intent(in) :: anim
-    call dealloc_anim(c_loc(anim))
+    call c_free(c_loc(anim%data(1,1,1,1)))
   end subroutine unload_animation
 
   subroutine update_accumulator(this)
