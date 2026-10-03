@@ -22,31 +22,26 @@ module engine
   integer , parameter :: framerate = 60
   integer , parameter :: width = 1024, height = 1024
 
-  private
-
-  public :: run_once, setup, close_engine
+  public
   contains
-
   subroutine setup()
     use , intrinsic :: iso_c_binding, only:c_null_ptr, c_funloc, c_null_char
     use c_bindings, only:mfb_set_keyboard_callback, c_write_png
-    use library, only:animation
-    
-    type(animation) :: anim
+    use shaders, only:setup_bad_apple
     window = c_null_ptr
     curr_scene = fractal_planetarium()
-    call curr_scene%set_resolution(width, height)
-    anim = load_animation("bad_apple")
-      call handle_screenshot("the_baddest_apple.png",anim%width, anim%height, anim%data(:,:,:,100))
-    call unload_animation(anim)
 
+    call curr_scene%set_resolution(width, height)
     allocate(canvas(4,curr_scene%width,curr_scene%height))
     call open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
     call mfb_set_keyboard_callback(window, c_funloc(update_input))
+    call setup_bad_apple ()
   end subroutine setup
 
   function run_once() result(quit)
     use c_bindings, only:usleep
+    use shaders, only:update_bad_apple_state
+    
     logical :: quit
     integer :: i
     quit = .false.
@@ -61,6 +56,7 @@ module engine
 
     do i = 1, acc%frames_accumulated
       call update_state()
+      call update_bad_apple_state()
     end do
 
     call acc%wait()
@@ -156,34 +152,6 @@ module engine
 
     deallocate(tmp_canvas)
   end subroutine handle_screenshot
-
-  function load_animation(name) result(anim)
-    use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char, c_associated, c_f_pointer
-    use, intrinsic :: iso_fortran_env, only:uint8
-    use c_bindings, only:load_anim
-    use library, only:c_animation, animation
-    character(len=*), intent(in) :: name
-    character(kind=c_char, len=:), allocatable:: c_name
-    type(c_animation) :: c_anim
-    type(animation) :: anim
-
-    c_name = "assets/" // name // c_null_char
-    c_anim = load_anim(c_name)
-
-    anim%width = c_anim%width
-    anim%height = c_anim%height
-
-    call c_f_pointer(c_anim%data, anim%data, [&
-      int(c_anim%bpp / 8), int(c_anim%width), int(c_anim%height),&
-      int(((c_anim%bpp / 8 ) * c_anim%width * c_anim%height) / c_anim%frame_size)&
-    ])
-
-    if(.not.c_associated(c_anim%data)) then
-      print *, "failed to generate animation, dir ", name, " may not exist as a directory"
-      error stop
-    end if
-  end function load_animation
-
   subroutine unload_animation(anim)
     use library, only:animation
     use, intrinsic :: iso_c_binding, only:c_loc

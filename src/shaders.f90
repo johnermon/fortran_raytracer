@@ -1,15 +1,27 @@
 module shaders
-  use library, only:compute_cross_product, normalize
+  use library, only:compute_cross_product, normalize, animation, load_animation
+  use, intrinsic :: iso_fortran_env, only:uint8
   implicit none(type, external)
   public
   integer, parameter :: rainbow = 1, checkerboard = 2, mandlebrot = 3, burningship = 4,&
-                        powertower = 5
+                        powertower = 5, badapple = 6
+
+  type(animation) :: badapple_anim
+  integer :: badapple_frame
 
   contains
+    subroutine setup_bad_apple()
+      badapple_frame = 1
+      badapple_anim = load_animation("bad_apple")
+    end subroutine setup_bad_apple
+
+    subroutine update_bad_apple_state()
+      badapple_frame = mod(badapple_frame + 1, badapple_anim%frame_count)
+    end subroutine update_bad_apple_state
+
     !this funcion is static dispatch for shaders. i tried function pointers for runtime
     !polymorphism it really messed up performance, this seems like a pretty good compromise
     pure function apply_shader(shader, colorin, origin, point, h_vec, v_vec) result(color)
-      use, intrinsic :: iso_fortran_env, only:uint8
       real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
       integer, intent(in) :: shader
       unsigned(uint8), intent(in) :: colorin(4)
@@ -26,6 +38,8 @@ module shaders
           color = burningship_shader(colorin, origin, point, h_vec, v_vec)
         case (powertower)
           color = powertower_shader(colorin, origin, point, h_vec, v_vec)
+        case (badapple)
+          color = badapple_shader(colorin, origin, point, h_vec, v_vec)
         case default
           color =  blank
       end select
@@ -142,4 +156,16 @@ module shaders
         color(4) = 255u
       end do
     end function powertower_shader
+    pure function badapple_shader(colorin, origin, point, h_vec, v_vec) result(color)
+      use, intrinsic :: iso_fortran_env, only:uint8
+      real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
+      integer :: x, y
+      unsigned(uint8), intent(in) :: colorin(4)
+      unsigned(uint8) :: color(4)
+      
+      x = floor(abs(dot_product(origin - point, h_vec)))
+      y = floor(abs(dot_product(origin - point, v_vec)))
+      color = badapple_anim%data(:,mod(x,badapple_anim%width),mod(y,badapple_anim%height),badapple_frame)
+
+      end function badapple_shader
 end module shaders

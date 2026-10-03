@@ -24,8 +24,7 @@ int write_png(const char *filename, int width, int height,
 
 typedef struct animation {
   char *data;
-  size_t frame_size;
-  int height, width;
+  int height, width, frame_count;
   uint16_t bpp;
 } animation_t;
 
@@ -40,6 +39,7 @@ animation_t load_anim(const char *name) {
 
   int file_count = 0;
   size_t file_size = 0;
+  size_t frame_size;
 
   char *temp_buf = NULL;
   anim.data = NULL;
@@ -83,10 +83,7 @@ animation_t load_anim(const char *name) {
       memcpy(&anim.bpp, temp_buf + 28, sizeof(uint16_t));
 
       file_size = file._s.st_size;
-      anim.frame_size = (anim.bpp / 8) * anim.width * anim.height;
-
-      printf("Animation %s: \nheight: %d, width: %d, bpp: %hu\n", name,
-             anim.height, anim.width, anim.bpp);
+      frame_size = (anim.bpp / 8) * anim.width * anim.height;
       file_count++;
     }
     tinydir_next(&dir);
@@ -121,10 +118,11 @@ animation_t load_anim(const char *name) {
     goto error;
   }
 
-  anim.data = (char *)malloc(file_count * anim.frame_size);
+  anim.data = (char *)malloc(file_count * frame_size);
   if (anim.data == NULL)
     goto cleanup1;
 
+  anim.frame_count = file_count;
   file_count = 0;
 
   while (dir.has_next) {
@@ -164,8 +162,9 @@ animation_t load_anim(const char *name) {
 
       uint32_t offset_from_file = 0;
       memcpy(&offset_from_file, temp_buf + 10, sizeof(uint32_t));
-      memcpy(anim.data + file_count * anim.frame_size,
-             temp_buf + offset_from_file, anim.frame_size);
+      memcpy(anim.data + file_count * frame_size, temp_buf + offset_from_file,
+             frame_size);
+
       file_count++;
     }
     tinydir_next(&dir);
@@ -185,9 +184,4 @@ close:
   tinydir_close(&dir);
 error:
   return (animation_t){NULL, 0, 0, 0};
-}
-
-void dealloc_anim(animation_t *anim) {
-  free((void *)anim->data);
-  anim->data = NULL;
 }

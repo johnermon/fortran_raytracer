@@ -120,7 +120,7 @@ module scenes
     use, intrinsic :: iso_fortran_env, only:uint8
     type(scene) :: ret
       ret = scene_new(&
-        [0.0, 0.0, 0.0],&                        ! camera position
+        [2249.0, 791.0, 741.0],&                        ! camera position
         [0.68, 0.68, 0.27],&                     ! camera direction (unit length)
         uint([90, 40, 20, 255], kind=uint8),&    ! sky: deep twilight navy
         [&! planes
@@ -148,7 +148,7 @@ module scenes
             250.0,&
             [2600.0, 1000.0, 800.0],&
             uint([220, 90, 255, 255], kind=uint8),&
-            powertower&
+            badapple&
           ),&
           sphere_new(60.0, [450.0,  250.0, -140.0], uint([ 60,  40, 220, 255], kind=uint8), checkerboard),& ! ruby
           sphere_new(60.0, [600.0,  450.0, -140.0], uint([ 90, 200,  60, 255], kind=uint8), checkerboard),& ! emerald

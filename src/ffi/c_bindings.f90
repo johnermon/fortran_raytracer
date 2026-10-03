@@ -1,5 +1,11 @@
 module c_bindings
+  use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_int16_t
   implicit none(type, external)
+  type , bind(c) :: c_animation
+    type(c_ptr) :: data
+    integer(c_int) :: height, width, frame_count
+    integer(c_int16_t) :: bpp
+  end type c_animation
   public
   interface
     function c_write_png(name, width, height, pixels) bind(C, name="write_png")
@@ -13,7 +19,8 @@ module c_bindings
 
     function load_anim(name) bind(C, name="load_anim")
       use , intrinsic :: iso_c_binding, only: c_char
-      use library, only:c_animation
+      import :: c_animation
+
       character(c_char), intent(in) :: name(*)
       type(c_animation) :: load_anim
     end function load_anim
