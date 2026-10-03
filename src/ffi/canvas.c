@@ -116,8 +116,10 @@ animation_t load_anim(const char *name) {
   // second pass loads opens each file and saves it to the buffer
   // the first file becomes prototype for the rest of the files, if the bpp
   // width and height dont match you get an error
-  if (tinydir_open(&dir, name) == -1)
-    goto error;
+  if (tinydir_open(&dir, name) == -1){
+     free((void *)temp_buf);
+     goto error;
+  }
 
   size_t bufsize = (anim.height * anim.width * (bpp / 8));
   anim.data = (char *)malloc(file_count * bufsize);
