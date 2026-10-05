@@ -75,13 +75,13 @@ module engine
     use input, only: keyboard_get_rotation,keyboard_get_dir
     integer :: i
     frame_count = frame_count + 1
+    curr_scene%animations(i)%frame_state = 1 +&
     do i=1, size(curr_scene%animations)
-      curr_scene%animations(i)%frame_state = 1 +&
         floor(&
           (real(curr_scene%animations(i)%framerate) / real(framerate)) *&
           mod(frame_count, curr_scene%animations(i)%frame_count)&
         )
-    end do
+      end do
     call curr_scene%move_camera(keyboard_get_dir())
     call curr_scene%rotate_camera(keyboard_get_rotation())
   end subroutine update_state
