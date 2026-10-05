@@ -46,6 +46,30 @@ module shaders
       end select
     end subroutine apply_shader
 
+    pure subroutine animation_shader(color, origin, point, h_vec, v_vec, param, anims)
+      use, intrinsic :: iso_fortran_env, only:uint8
+      real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
+      integer, value :: param
+      integer :: x, y
+      type(animation),contiguous, intent(in) :: anims(:)
+      type(animation) :: anim
+      unsigned(uint8), intent(inout):: color(4)
+      unsigned(uint8) :: colorin(4)
+      colorin = color
+      
+      x = int(floor(abs(dot_product(origin - point, h_vec))))
+      y = int(floor(abs(dot_product(origin - point, v_vec))))
+
+      associate(anim => anims(param))
+        color = anim%data(:,&
+          1 + mod(x, anim%width),&
+          1 + mod(y,anim%height),&
+          1 + mod(frame_cnt, anim%frame_count)&
+        )
+      end associate
+
+      end subroutine animation_shader
+
     pure subroutine rainbow_shader(color, origin, point)
       use, intrinsic :: iso_fortran_env, only:uint8
       real, intent(in) :: origin(3), point(3)
@@ -159,28 +183,4 @@ module shaders
         color(4) = 255u
       end do
     end subroutine powertower_shader
-
-    pure subroutine animation_shader(color, origin, point, h_vec, v_vec, param, anims)
-      use, intrinsic :: iso_fortran_env, only:uint8
-      real, intent(in) :: origin(3), point(3), h_vec(3), v_vec(3)
-      integer, value :: param
-      integer :: x, y
-      type(animation),contiguous, intent(in) :: anims(:)
-      type(animation) :: anim
-      unsigned(uint8), intent(inout):: color(4)
-      unsigned(uint8) :: colorin(4)
-      colorin = color
-      
-      x = int(floor(abs(dot_product(origin - point, h_vec))))
-      y = int(floor(abs(dot_product(origin - point, v_vec))))
-
-      associate(anim => anims(param))
-        color = anim%data(:,&
-          1 + mod(x, anim%width),&
-          1 + mod(y,anim%height),&
-          1 + int(floor(real(mod(frame_cnt, anim%frame_count))))&
-        )
-      end associate
-
-      end subroutine animation_shader
 end module shaders

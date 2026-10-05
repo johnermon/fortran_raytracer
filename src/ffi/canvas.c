@@ -162,7 +162,7 @@ animation_t load_anim(const char *name) {
   free((void *)temp_buf);
   return anim;
 
-  // linux kernel style error handling here
+  // error case, linux kernel style error handling here
 cleanup2:
   free((void *)anim.data);
 cleanup1:
