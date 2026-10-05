@@ -74,14 +74,12 @@ module engine
   subroutine update_state()
     use input, only: keyboard_get_rotation,keyboard_get_dir
     integer :: i
+    real :: framerate_adj
     frame_count = frame_count + 1
     do i=1, size(curr_scene%animations)
-        floor(&
-          (real(curr_scene%animations(i)%framerate) / real(framerate)) *&
-          mod(frame_count, curr_scene%animations(i)%frame_count)&
-        )
-      print *,curr_scene%animations(i)%frame_count, " ", curr_scene%animations(i)%frame_state
-      print *, mod(frame_count, curr_scene%animations(i)%frame_count)
+      framerate_adj = (real(curr_scene%animations(i)%framerate) / real(framerate))
+      curr_scene%animations(i)%frame_state = 1 +&
+        int(mod(framerate_adj * real(frame_count), real(curr_scene%animations(i)%frame_count)))
       end do
     call curr_scene%move_camera(keyboard_get_dir())
     call curr_scene%rotate_camera(keyboard_get_rotation())
