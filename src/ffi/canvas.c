@@ -39,7 +39,7 @@ animation_t load_anim(const char *name) {
 
   int file_count = 0;
   size_t file_size = 0;
-  size_t frame_size;
+  size_t frame_size = 0;
 
   char *temp_buf = NULL;
   anim.data = NULL;
@@ -87,7 +87,6 @@ animation_t load_anim(const char *name) {
   file_count++;
   iter++;
 
-  printf("cung y l\n");
   // gets count of files, by finishing the iteration
   for (size_t i = iter; i < dir.n_files; i++) {
     if (tinydir_readfile_n(&dir, &file, i) == -1)
@@ -105,16 +104,10 @@ animation_t load_anim(const char *name) {
       }
     }
   }
-  tinydir_close(&dir);
 
   // second pass loads opens each file and saves it to the buffer
   // the first file becomes prototype for the rest of the files, if the bpp
   // width and height dont match you get an error
-  if (tinydir_open_sorted(&dir, name) == -1) {
-    free((void *)temp_buf);
-    goto error;
-  }
-
   anim.data = (char *)malloc(file_count * frame_size);
   if (anim.data == NULL)
     goto cleanup1;
@@ -128,10 +121,8 @@ animation_t load_anim(const char *name) {
 
     if (!file.is_dir) {
       FILE *loaded_file = fopen(file.path, "rb");
-      if (loaded_file == NULL) {
-        fclose(loaded_file);
+      if (loaded_file == NULL)
         goto cleanup2;
-      }
 
       if (fread(temp_buf, file._s.st_size, 1, loaded_file) != 1) {
         fclose(loaded_file);

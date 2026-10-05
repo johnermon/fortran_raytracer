@@ -1,9 +1,10 @@
 module raytracer
   use , intrinsic :: iso_c_binding, only:c_int
   use, intrinsic :: iso_fortran_env, only:uint8
-  use library, only:compute_cross_product, normalize
+  use library, only:compute_cross_product, normalize, animation
   use primatives, only:sphere, plane
   use shaders, only:apply_shader
+
   implicit none(type, external)
   private
   public :: trace_rays, scene_new, scene, plane, sphere
@@ -16,10 +17,12 @@ module raytracer
 
     type(plane) , allocatable :: planes(:)
     type(sphere) , allocatable :: spheres(:)
+    type(animation), allocatable :: animations(:)
+
     contains
       procedure :: &
         move_camera, rotate_camera,&
-        trace_rays, get_ray_color, get_ray,&
+        get_ray_color, get_ray,&
         set_resolution => scene_set_resolution
 
   end type scene
@@ -29,14 +32,16 @@ module raytracer
 
   contains
   !override constructor for scene, allows you to not have to worry about boilerplate
-    pure function scene_new(camera_pos, camera_vec, sky_color, planes, spheres) result(new_scene)
+    function scene_new(camera_pos, camera_vec, sky_color, planes, spheres, animations) result(new_scene)
       use, intrinsic :: iso_c_binding, only:c_int
-      use library, only:up_vec
+      use library, only:up_vec,load_animation
       real, intent(in) :: camera_pos(3), camera_vec(3)
       unsigned(uint8), intent(in) :: sky_color(4)
       type(plane), intent(in) :: planes(:)
       type(sphere), intent(in) :: spheres(:)
+      character(len=*), intent(in) :: animations(:)
       type(scene) :: new_scene
+      integer :: i
 
       new_scene%h_vec = normalize(compute_cross_product(camera_vec, up_vec))
       new_scene%v_vec = normalize(compute_cross_product(camera_vec, new_scene%h_vec))
@@ -47,6 +52,11 @@ module raytracer
       new_scene%sky_color = sky_color
       new_scene%planes = planes
       new_scene%spheres = spheres
+      allocate(new_scene%animations(size(animations)))
+
+      do i = 1, size(animations)
+        call load_animation(animations(i), new_scene%animations(i))
+      end do
 
     end function scene_new
 
@@ -87,31 +97,28 @@ module raytracer
       end associate
     end subroutine rotate_camera
 
-    subroutine trace_rays(this, canvas)
+    subroutine trace_rays(curr_scene, canvas)
       use, intrinsic :: iso_fortran_env, only:uint8
-      class(scene), intent(in) :: this
+      type(scene), intent(in) :: curr_scene
       unsigned(uint8), contiguous, intent(inout) ::  canvas(:,:,:)
-
-      !$omp parallel
-      block
         integer :: i, j
         real :: r(3)
-        !$omp do schedule(static) collapse(2)
-        do j=1, this%height
-          do i = 1, this%width
-            r = this%get_ray(i,j)
-            canvas(:,i,j) = this%get_ray_color(r)
+        
+        !$omp parallel do shared(curr_scene) private(r,i,j) schedule(static) collapse(2)
+          do j=1, curr_scene%height
+            do i = 1, curr_scene%width
+              r = curr_scene%get_ray(i,j)
+              call curr_scene%get_ray_color(r,canvas(:,i,j))
+            end do
           end do
-        end do
-        !$omp end do
-      end block
-    !$omp end parallel
+        !$omp end parallel do
 
     end subroutine trace_rays
 
     !generates each pixel
     pure function get_ray(this, i, j) result(ray)
       use, intrinsic :: iso_fortran_env, only:uint8
+      use library, only:normalize_in_place
       class(scene), intent(in) :: this
       integer, intent(in) :: i, j
       real :: i_com, j_com, ray(3)
@@ -119,18 +126,18 @@ module raytracer
       i_com = (real(2*i) / real(this%width)) - 1.0
       j_com = (real(2*j) / real(this%height)) - 1.0
 
-      ray = normalize(this%camera_vec + i_com * this%h_vec + j_com * this%v_vec)
+      call normalize_in_place(ray, this%camera_vec + i_com * this%h_vec + j_com * this%v_vec)
 
     end function get_ray
 
-    pure function get_ray_color(this,r) result(color)
+    pure subroutine get_ray_color(this,r, color)
       use, intrinsic :: iso_fortran_env, only:uint8
       use library, only: up_vec
       class(scene), intent(in) :: this
       real, intent(in) :: r(3)
-      unsigned(uint8) :: color(4)
+      unsigned(uint8), intent(out):: color(4)
       real, parameter :: largest = huge(1.0)
-      integer :: i, curr_shader
+      integer :: i, curr_shader, curr_param
       real :: smallest, curr, curr_point(3), curr_h_vec(3), curr_v_vec(3)
 
       associate(&
@@ -138,13 +145,17 @@ module raytracer
         camera_pos => this%camera_pos,&
         sky_color => this%sky_color,&
         planes => this%planes,&
-        spheres => this%spheres&
+        spheres => this%spheres,&
+        animations => this%animations&
       )
 
+        smallest = 0
         color = sky_color
         curr = smallest
         smallest = largest
         curr_shader = 0
+        curr_param = 0
+
 
         do i=1, size(planes)
           curr = planes(i)%get_plane_intersection(r, camera_pos)
@@ -152,6 +163,7 @@ module raytracer
             smallest = curr
             color = planes(i)%color
             curr_shader = planes(i)%shader
+            curr_param = planes(i)%params
             curr_point = planes(i)%point
             curr_h_vec = planes(i)%h_vec
             curr_v_vec = planes(i)%v_vec
@@ -164,6 +176,7 @@ module raytracer
             smallest = curr
             color = spheres(i)%color
             curr_shader = spheres(i)%shader
+            curr_param = spheres(i)%params
             curr_point = spheres(i)%point
             curr_v_vec = spheres(i)%v_vec
             curr_h_vec = spheres(i)%h_vec
@@ -171,11 +184,12 @@ module raytracer
         end do
 
         if (.not.curr_shader == 0) then
-          color = apply_shader(&
-            curr_shader, color, curr_point, smallest * r + camera_pos, curr_h_vec, curr_v_vec&
+          call apply_shader(&
+            curr_shader, color, curr_point, smallest * r + camera_pos, curr_h_vec, curr_v_vec,&
+            curr_param, animations&
           )
         end if
 
     end associate
-    end function get_ray_color
+    end subroutine get_ray_color
 end module raytracer

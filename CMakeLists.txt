@@ -50,7 +50,12 @@ target_sources(stb_image_write INTERFACE
 target_compile_options(fortran_raytracer PRIVATE
   $<$<COMPILE_LANGUAGE:Fortran>:-funsigned>
   $<$<COMPILE_LANGUAGE:Fortran>:-fno-range-check>
+  $<$<COMPILE_LANGUAGE:Fortran>:-Warray-temporaries>
+
   -O3
+  # -g3
+  # -O0
+  # -fno-omit-frame-pointer
   -fopenmp
   -march=native
 )

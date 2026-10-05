@@ -1,9 +1,9 @@
 module c_bindings
-  use , intrinsic :: iso_c_binding, only: c_ptr, c_int, c_int16_t
+  use , intrinsic :: iso_c_binding, only: c_ptr,c_null_ptr, c_int, c_int16_t
   implicit none(type, external)
   type , bind(c) :: c_animation
-    type(c_ptr) :: data
-    integer(c_int) :: height, width, frame_count
+    type(c_ptr) :: data = c_null_ptr
+    integer(c_int) :: height = 0, width = 0, frame_count = 0
     integer(c_int16_t) :: bpp
   end type c_animation
   public

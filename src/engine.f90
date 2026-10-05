@@ -19,14 +19,14 @@ module engine
   type(c_ptr) :: window
   type(accumulator) :: acc
 
-  integer , parameter :: framerate = 60
+  integer , parameter :: framerate = 120
   integer , parameter :: width = 1024, height = 1024
 
   public
   contains
   subroutine setup()
     use , intrinsic :: iso_c_binding, only:c_null_ptr, c_funloc, c_null_char
-    use c_bindings, only:mfb_set_keyboard_callback, c_write_png
+    use c_bindings, only:mfb_set_keyboard_callback, c_write_png, usleep
     use shaders, only:setup_bad_apple
     window = c_null_ptr
     curr_scene = fractal_planetarium()
@@ -36,12 +36,14 @@ module engine
     call open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
     call mfb_set_keyboard_callback(window, c_funloc(update_input))
     call acc%setup()
-    call setup_bad_apple ()
+    ! call setup_bad_apple ()
+    ! call usleep(100000)
   end subroutine setup
 
   function run_once() result(quit)
     use c_bindings, only:usleep
     use shaders, only:update_bad_apple_state
+    use raytracer, only:trace_rays
     
     logical :: quit
     integer :: i
@@ -62,8 +64,7 @@ module engine
 
     call acc%wait()
 
-    call curr_scene%trace_rays(canvas)
-
+    call trace_rays(curr_scene, canvas)
 
     call update_window()
 
@@ -78,6 +79,20 @@ module engine
     call curr_scene%move_camera(keyboard_get_dir())
     call curr_scene%rotate_camera(keyboard_get_rotation())
   end subroutine update_state
+
+  subroutine close_engine()
+    use , intrinsic :: iso_c_binding, only: c_ptr
+    use c_bindings, only:mfb_close
+    use library, only:unload_animation
+    integer :: i
+    call mfb_close(window)
+    deallocate(canvas)
+    do i = 1, size(curr_scene%animations)
+      call unload_animation(curr_scene%animations(i))
+    end do
+    deallocate(curr_scene%animations)
+  end subroutine close_engine
+
 
   subroutine open_window(name, width, height)
     use , intrinsic ::iso_c_binding, only:&
@@ -117,15 +132,6 @@ module engine
       error stop
     end if
   end subroutine update_window
-
-  subroutine close_engine()
-    use , intrinsic :: iso_c_binding, only: c_ptr
-    use c_bindings, only:mfb_close
-    use shaders, only:remove_bad_apple
-    call mfb_close(window)
-    deallocate(canvas)
-    call remove_bad_apple()
-  end subroutine close_engine
 
   subroutine handle_screenshot(name, width, height, canvas_in)
     use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char

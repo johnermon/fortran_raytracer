@@ -6,27 +6,25 @@ module primatives
   type :: plane
     real:: point(3), normal(3), h_vec(3), v_vec(3)
     unsigned(uint8) :: color(4)
-    integer :: shader
+    integer :: shader, params
     contains
       procedure :: get_plane_intersection
   end type plane
-  ! interface plane
-  !   module procedure :: plane_new
-  ! end interface plane
+
 type :: sphere
     real :: radius, point(3), h_vec(3), v_vec(3)
     unsigned(uint8) :: color(4)
-    integer :: shader
+    integer :: shader, params
     contains
       procedure :: get_sphere_intersection
   end type sphere
 
   contains
     !automatically normalizes whatever normal you pass into the plane
-    pure function plane_new(point, normal, color, shade) result(new_plane)
+    pure function plane_new(point, normal, color, shade, param) result(new_plane)
       use library, only:up_vec
       real, intent(in) :: point(3), normal(3)
-      integer, intent(in) :: shade
+      integer, intent(in) :: shade, param
       unsigned(uint8), intent(in) :: color(4)
 
       type(plane) :: new_plane
@@ -36,12 +34,13 @@ type :: sphere
       new_plane%normal = normalize(normal)
       new_plane%color = color
       new_plane%shader = shade
+      new_plane%params = param
     end function plane_new
 
-    pure function sphere_new(radius, point, color, shade) result(new_sphere)
+    pure function sphere_new(radius, point, color, shade, param) result(new_sphere)
       use library, only:up_vec
       real, intent(in) :: point(3), radius
-      integer, intent(in) :: shade
+      integer, intent(in) :: shade, param
       unsigned(uint8), intent(in) :: color(4)
       type(sphere) :: new_sphere
 
@@ -51,6 +50,7 @@ type :: sphere
       new_sphere%radius = radius
       new_sphere%color = color
       new_sphere%shader = shade
+      new_sphere%params = param
     end function sphere_new
 
     pure function get_sphere_intersection(this, r, cam)result(t)
