@@ -11,7 +11,7 @@ module raytracer
 
   type :: scene
     integer(c_int) :: width , height
-    real :: camera_pos(3), camera_vec(3)
+    real :: aspect_ratio, horizontal_trans, camera_pos(3), camera_vec(3)
     real :: h_vec(3), v_vec(3)
     unsigned(uint8) :: sky_color(4)
 
@@ -47,6 +47,8 @@ module raytracer
       new_scene%v_vec = normalize(compute_cross_product(camera_vec, new_scene%h_vec))
       new_scene%width = 0
       new_scene%height = 0
+      new_scene%aspect_ratio = 0.0
+      new_scene%horizontal_trans = 0.0
       new_scene%camera_pos = camera_pos
       new_scene%camera_vec = camera_vec
       new_scene%sky_color = sky_color
@@ -61,6 +63,8 @@ module raytracer
       integer(c_int), value :: width, height
       this%width = width
       this%height = height
+      this%aspect_ratio = real(width) / real(height)
+      this%horizontal_trans = this%aspect_ratio * 2.0
     end subroutine scene_set_resolution
 
     subroutine move_camera(this, dir_vec)
@@ -115,11 +119,11 @@ module raytracer
       use, intrinsic :: iso_fortran_env, only:uint8
       use library, only:normalize_in_place
       class(scene), intent(in) :: this
-      integer, intent(in) :: i, j
+      integer, value :: i, j
       real :: i_com, j_com, ray(3)
 
-      i_com = (real(2*i) / real(this%width)) - 1.0
-      j_com = (real(2*j) / real(this%height)) - 1.0
+      i_com = (real(i) * this%horizontal_trans / real(this%width)) - this % aspect_ratio
+      j_com = (real(j) * 2.0  / real(this%height)) - 1.0
 
       call normalize_in_place(ray, this%camera_vec + i_com * this%h_vec + j_com * this%v_vec)
 

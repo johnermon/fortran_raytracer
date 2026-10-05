@@ -20,7 +20,7 @@ module engine
   type(accumulator) :: acc
 
   integer , parameter :: framerate = 120
-  integer , parameter :: width = 1024, height = 1024
+  integer , parameter :: width = 1600, height = 900
 
   integer :: frame_count
 
@@ -95,7 +95,6 @@ module engine
     do i = 1, size(curr_scene%animations)
       call unload_animation(curr_scene%animations(i))
     end do
-    deallocate(curr_scene%animations)
   end subroutine close_engine
 
 
