@@ -81,8 +81,8 @@ module engine
       curr_scene%animations(i)%frame_state = 1 +&
         int(mod(framerate_adj * real(frame_count), real(curr_scene%animations(i)%frame_count)))
       end do
-    call curr_scene%move_camera(keyboard_get_dir())
-    call curr_scene%rotate_camera(keyboard_get_rotation())
+    call curr_scene%move_camera(keyboard_get_dir() / real(framerate))
+    call curr_scene%rotate_camera(keyboard_get_rotation() / real(framerate))
   end subroutine update_state
 
   subroutine close_engine()

@@ -42,14 +42,15 @@ module input
 
     function keyboard_get_dir() result(dir)
       real :: dir(3)
+      real, parameter :: speed = 100.0
       dir = [0.0,0.0,0.0]
 
-      if(is_pressed(w))  dir(1) = dir(1) + 1.0
-      if(is_pressed(s))  dir(1) = dir(1) - 1.0
-      if(is_pressed(d))  dir(2) = dir(2) + 1.0
-      if(is_pressed(a))  dir(2) = dir(2) - 1.0
-      if(is_pressed(space))  dir(3) = dir(3) - 1.0
-      if(is_pressed(lshift)) dir(3) = dir(3) + 1.0
+      if(is_pressed(w))  dir(1) = dir(1) + speed
+      if(is_pressed(s))  dir(1) = dir(1) - speed
+      if(is_pressed(d))  dir(2) = dir(2) + speed
+      if(is_pressed(a))  dir(2) = dir(2) - speed
+      if(is_pressed(space))  dir(3) = dir(3) - speed
+      if(is_pressed(lshift)) dir(3) = dir(3) + speed
       block
         logical, save :: run_toggle = .false.
         if(was_just_pressed(r)) then
@@ -61,12 +62,13 @@ module input
 
     pure function keyboard_get_rotation() result(dir)
       real :: dir(3)
+      real, parameter :: speed = 2.0
       dir = [0.0,0.0,0.0]
-      if(is_pressed(up))  dir(1) = dir(1) - 0.05
-      if(is_pressed(down))  dir(1) = dir(1) + 0.05
-      if(is_pressed(left))  dir(2) = dir(2) - 0.05
-      if(is_pressed(right))  dir(2) = dir(2) + 0.05
-      if(is_pressed(q))  dir(3) = dir(3) - 0.05
-      if(is_pressed(e))  dir(3) = dir(3) + 0.05
+      if(is_pressed(up))  dir(1) = dir(1) - speed
+      if(is_pressed(down))  dir(1) = dir(1) + speed
+      if(is_pressed(left))  dir(2) = dir(2) - speed
+      if(is_pressed(right))  dir(2) = dir(2) + speed
+      if(is_pressed(q))  dir(3) = dir(3) - speed
+      if(is_pressed(e))  dir(3) = dir(3) + speed
     end function keyboard_get_rotation
 end module input

@@ -6,17 +6,7 @@ module shaders
   integer, parameter :: apply_animation = 1, rainbow = 2, checkerboard = 3, mandlebrot = 4,&
                         burningship = 5, powertower = 6, badapple = 7
 
-  integer :: frame_cnt
-
   contains
-    subroutine setup_shaders()
-      frame_cnt = 0
-    end subroutine setup_shaders
-
-    subroutine shader_frame_cnt_incr()
-      frame_cnt = frame_cnt + 1
-    end subroutine shader_frame_cnt_incr
-
     !this funcion is static dispatch for shaders. i tried function pointers for runtime
     !polymorphism it really messed up performance, this seems like a pretty good compromise
     pure subroutine apply_shader(&
