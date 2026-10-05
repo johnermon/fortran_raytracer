@@ -5,22 +5,22 @@ module library
   real, parameter :: up_vec(3) = [0.0, 0.0, 1.0]
   type :: animation
     unsigned(uint8), contiguous, pointer :: data(:,:,:,:) => null()
-    integer:: height = 0, width = 0, frame_count= 0
+    integer:: height = 0, width = 0, frame_count= 0, framerate = 0, frame_state = 1
   end type animation
 
   public
 
   contains
 
-    subroutine load_animation(name, anim)
+    function load_animation(name, framerate) result(anim)
       use , intrinsic :: iso_c_binding, only: c_char, c_ptr, c_int, c_loc, c_null_char, c_associated, c_f_pointer
       use, intrinsic :: iso_fortran_env, only:uint8
       use c_bindings, only:load_anim, c_animation
       character(len=*), intent(in) :: name
       character(kind=c_char, len=:), allocatable:: c_name
       type(c_animation) :: c_anim
-      type(animation), intent(out) :: anim
-      integer :: height, width, bpp, frame_count
+      type(animation) :: anim
+      integer :: height, width, bpp, frame_count, framerate
 
       c_name = "assets/" // trim(name) // c_null_char
       c_anim = load_anim(c_name)
@@ -38,10 +38,11 @@ module library
       anim%width = width
       anim%height = height
       anim%frame_count =  frame_count
+      anim%framerate = framerate
       
       call c_f_pointer(c_anim%data, anim%data,[bpp, width, height, frame_count])
 
-    end subroutine load_animation
+    end function load_animation
 
     subroutine unload_animation(anim)
       use, intrinsic :: iso_c_binding, only:c_loc

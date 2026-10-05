@@ -171,7 +171,7 @@ module scenes
         ],&
 
         [&!animations
-          "bad_apple"& !index 1 in animations array
+          load_animation("bad_apple", 20)&
         ]&
       )
   end function fractal_planetarium

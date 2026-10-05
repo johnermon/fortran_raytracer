@@ -22,21 +22,21 @@ module engine
   integer , parameter :: framerate = 120
   integer , parameter :: width = 1024, height = 1024
 
+  integer :: frame_count
+
   public
   contains
   subroutine setup()
     use , intrinsic :: iso_c_binding, only:c_null_ptr, c_funloc, c_null_char
     use c_bindings, only:mfb_set_keyboard_callback, c_write_png, usleep
-    use shaders, only:setup_shaders
     window = c_null_ptr
     curr_scene = fractal_planetarium()
-
+    frame_count = 1
     call curr_scene%set_resolution(width, height)
     allocate(canvas(4,curr_scene%width,curr_scene%height))
     call open_window("Fortran Raytracer", curr_scene%width, curr_scene%height)
     call mfb_set_keyboard_callback(window, c_funloc(update_input))
     call acc%setup()
-    call setup_shaders()
   end subroutine setup
 
   function run_once() result(quit)
@@ -73,10 +73,17 @@ module engine
 
   subroutine update_state()
     use input, only: keyboard_get_rotation,keyboard_get_dir
-    use shaders, only:shader_frame_cnt_incr
+    integer :: i
+    frame_count = frame_count + 1
+    do i=1, size(curr_scene%animations)
+      curr_scene%animations(i)%frame_state = 1 +&
+        floor(&
+          (real(curr_scene%animations(i)%framerate) / real(framerate)) *&
+          mod(frame_count, curr_scene%animations(i)%frame_count)&
+        )
+    end do
     call curr_scene%move_camera(keyboard_get_dir())
     call curr_scene%rotate_camera(keyboard_get_rotation())
-    call shader_frame_cnt_incr()
   end subroutine update_state
 
   subroutine close_engine()

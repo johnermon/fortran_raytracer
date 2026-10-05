@@ -64,7 +64,7 @@ module shaders
         color = anim%data(:,&
           1 + mod(x, anim%width),&
           1 + mod(y,anim%height),&
-          1 + mod(frame_cnt, anim%frame_count)&
+          anim%frame_state&
         )
       end associate
 
