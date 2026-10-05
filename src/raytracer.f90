@@ -52,8 +52,8 @@ module raytracer
       new_scene%sky_color = sky_color
       new_scene%planes = planes
       new_scene%spheres = spheres
-      allocate(new_scene%animations(size(animations)))
 
+      allocate(new_scene%animations(size(animations)))
       do i = 1, size(animations)
         call load_animation(animations(i), new_scene%animations(i))
       end do

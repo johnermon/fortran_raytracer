@@ -6,18 +6,16 @@ module shaders
   integer, parameter :: apply_animation = 1, rainbow = 2, checkerboard = 3, mandlebrot = 4,&
                         burningship = 5, powertower = 6, badapple = 7
 
-  real :: badapple_frame
+  integer :: frame_cnt
 
   contains
-  !hacky functions just to hardcode the badapple behavior, will be made proper. on the
-  !bright side this shows it does work, asset loading pipeline all the way to renderer
-    subroutine setup_bad_apple()
-      badapple_frame = 1.0
-    end subroutine setup_bad_apple
+    subroutine setup_shaders()
+      frame_cnt = 0
+    end subroutine setup_shaders
 
-    subroutine update_bad_apple_state()
-      badapple_frame = mod(badapple_frame + 0.25, 2000.0)
-    end subroutine update_bad_apple_state
+    subroutine shader_frame_cnt_incr()
+      frame_cnt = frame_cnt + 1
+    end subroutine shader_frame_cnt_incr
 
     !this funcion is static dispatch for shaders. i tried function pointers for runtime
     !polymorphism it really messed up performance, this seems like a pretty good compromise
@@ -180,7 +178,7 @@ module shaders
         color = anim%data(:,&
           1 + mod(x, anim%width),&
           1 + mod(y,anim%height),&
-          1 + int(floor(badapple_frame))&
+          1 + int(floor(real(mod(frame_cnt, anim%frame_count))))&
         )
       end associate
 
