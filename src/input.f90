@@ -42,7 +42,7 @@ module input
 
     function keyboard_get_dir() result(dir)
       real :: dir(3)
-      real, parameter :: speed = 100.0
+      real, parameter :: speed = 100
       dir = [0.0,0.0,0.0]
 
       if(is_pressed(w))  dir(1) = dir(1) + speed
@@ -62,7 +62,7 @@ module input
 
     pure function keyboard_get_rotation() result(dir)
       real :: dir(3)
-      real, parameter :: speed = 2.0
+      real, parameter :: speed = 2.5
       dir = [0.0,0.0,0.0]
       if(is_pressed(up))  dir(1) = dir(1) - speed
       if(is_pressed(down))  dir(1) = dir(1) + speed

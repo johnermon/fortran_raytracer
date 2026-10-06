@@ -171,7 +171,7 @@ module scenes
         ],&
 
         [&!animations
-          load_animation("bad_apple", 20)&
+          load_animation("bad_apple", 15)&
         ]&
       )
   end function fractal_planetarium

@@ -123,7 +123,7 @@ module raytracer
       real :: i_com, j_com, ray(3)
 
       i_com = (real(i) * this%horizontal_trans / real(this%width)) - this % aspect_ratio
-      j_com = (real(j) * 2.0  / real(this%height)) - 1.0
+      j_com = (real(j * 2)  / real(this%height)) - 1.0
 
       call normalize_in_place(ray, this%camera_vec + i_com * this%h_vec + j_com * this%v_vec)
 
